@@ -4,15 +4,18 @@ import os
 import hashlib
 import uuid
 from datetime import datetime
-import sqlite3
 import json
+import psycopg2
+from psycopg2.extras import RealDictCursor
 
 app = Flask(__name__)
 
-# Database connection (SQLite for local testing)
+# Database connection
 def get_db():
-    conn = sqlite3.connect('expense_local.db')
-    conn.row_factory = sqlite3.Row
+    conn = psycopg2.connect(
+        os.getenv('DATABASE_URL'),
+        cursor_factory=RealDictCursor
+    )
     return conn
 
 # Redis connection (disabled for local testing)
@@ -463,6 +466,19 @@ def init_database():
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+# Health check endpoint
+@app.route('/')
+def health():
+    return jsonify({
+        'service': 'LAN Internal API',
+        'status': 'running',
+        'endpoints': {
+            'admin': '/admin/system_stats',
+            'init': '/init_db',
+            'api': '/api/register_user'
+        }
+    }), 200
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001, debug=False)
