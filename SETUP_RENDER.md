@@ -4,27 +4,25 @@
 - URL: https://expense-manager-wan.onrender.com
 - Status: ✅ Live
 
----
-
-## 📦 Bước 2: Tạo PostgreSQL Database
-
-### Trên Render Dashboard:
-1. Click **"New +"** → **"PostgreSQL"**
-2. Điền thông tin:
-   ```
-   Name: expense-db
-   Database: expense_manager
-   User: expense_user
-   Region: Singapore
-   Plan: Free
-   ```
-3. Click **"Create Database"**
-4. Đợi 1-2 phút để database khởi tạo
-5. Copy **Internal Database URL** (dạng: `postgresql://user:pass@host/db`)
+## ✅ Bước 1.5: LAN Service (ĐÃ XONG)
+- URL: https://expense-manager-lan.onrender.com
+- Status: ✅ Live
 
 ---
 
-## 🔧 Bước 3: Tạo LAN Service
+## ✅ Bước 2: PostgreSQL Database (ĐÃ XONG)
+- Name: expense-db
+- Status: ✅ Available
+- Database: expense_manager_miiy
+- Username: expense_user
+
+### ⚠️ QUAN TRỌNG: Copy Internal Database URL
+Trong Render Dashboard → expense-db → **Internal Database URL** (click để show)
+Format: `postgresql://expense_user:password@dpg-xxx-a:5432/expense_manager_miiy`
+
+---
+
+## ✅ Bước 3: LAN Service (ĐÃ XONG)
 
 ### Trên Render Dashboard:
 1. Click **"New +"** → **"Web Service"**
@@ -66,40 +64,55 @@ PORT=10000
 
 ---
 
-## 🔗 Bước 4: Cập nhật WAN Environment Variables
+## ✅ Bước 4: Environment Variables (ĐÃ XONG)
 
-### Trên WAN Service Settings:
+### 4.1 WAN Service Settings:
 1. Vào **expense-manager-wan** → **Environment**
 2. Thêm/Cập nhật:
 
 ```bash
-# URL của LAN service vừa tạo
+# URL của LAN service
 LAN_API_URL=https://expense-manager-lan.onrender.com
 
-# Copy từ PostgreSQL
-DATABASE_URL=<paste-internal-database-url>
+# Database URL
+DATABASE_URL=postgresql://expense_user:zgZqlwMttXq4M5sDAPilBEBsxMrLNW9L@dpg-d44sll8dl3ps73bjgqqg-a/expense_manager_miiy
 ```
 
-3. Click **"Save Changes"**
-4. WAN sẽ tự động redeploy
+### 4.2 LAN Service Settings:
+1. Vào **expense-manager-lan** → **Environment**
+2. Thêm:
+
+```bash
+# Database URL (giống WAN)
+DATABASE_URL=postgresql://expense_user:zgZqlwMttXq4M5sDAPilBEBsxMrLNW9L@dpg-d44sll8dl3ps73bjgqqg-a/expense_manager_miiy
+
+# Tạo ADMIN_SECRET mới (32 ký tự random)
+ADMIN_SECRET=admin-secret-key-12345678901234567890
+
+# Copy INTERNAL_SECRET từ WAN (phải giống nhau)
+INTERNAL_SECRET=<copy-from-WAN-service>
+```
+
+3. Click **"Save Changes"** ở cả 2 services
+4. Cả 2 services sẽ tự động redeploy
 
 ---
 
-## 🗄️ Bước 5: Khởi tạo Database
+## ✅ Bước 5: Khởi tạo Database (ĐÃ XONG)
 
-### Sau khi cả WAN và LAN đều live:
+### Gọi API khởi tạo database:
 
 ```bash
-# Lấy ADMIN_SECRET từ LAN environment variables
-# Gọi API khởi tạo database
 curl -X POST https://expense-manager-lan.onrender.com/init_db \
-  -H "Admin-Secret: YOUR_ADMIN_SECRET_HERE"
+  -H "Admin-Secret: admin-secret-key-12345678901234567890"
 ```
 
 **Kết quả mong đợi:**
 ```json
 {"success": true, "message": "Database initialized"}
 ```
+
+**Nếu lỗi:** Đợi 1-2 phút để services redeploy xong rồi thử lại.
 
 ---
 
@@ -136,11 +149,11 @@ Mở browser: https://expense-manager-wan.onrender.com
 ## 📋 Checklist hoàn thành
 
 - [x] WAN Service deployed
-- [ ] PostgreSQL Database created
-- [ ] LAN Service deployed
-- [ ] Environment variables configured
-- [ ] Database initialized
-- [ ] System tested
+- [x] LAN Service deployed
+- [x] PostgreSQL Database created
+- [x] Environment variables configured
+- [x] Database initialized
+- [ ] System tested 👆 **TIẾP THEO**
 
 ---
 

@@ -12,6 +12,7 @@ app = Flask(__name__)
 # Database connection
 def get_db():
     conn = psycopg.connect(os.getenv('DATABASE_URL'))
+    conn.row_factory = psycopg.rows.dict_row
     return conn
 
 # Redis connection (disabled for local testing)
