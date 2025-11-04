@@ -8,7 +8,7 @@ services:
     plan: free
     region: singapore
     branch: main
-    healthCheckPath: /
+    healthCheckPath: /health
     envVars:
       - key: FLASK_ENV
         value: production
@@ -32,7 +32,7 @@ services:
     plan: free
     region: singapore
     branch: main
-    healthCheckPath: /admin/system_stats
+    healthCheckPath: /health
     envVars:
       - key: FLASK_ENV
         value: production

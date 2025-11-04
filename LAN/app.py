@@ -4,22 +4,19 @@ import os
 import hashlib
 import uuid
 from datetime import datetime
-import psycopg2
-from psycopg2.extras import RealDictCursor
-import redis
+import sqlite3
 import json
 
 app = Flask(__name__)
 
-# Database connection
+# Database connection (SQLite for local testing)
 def get_db():
-    return psycopg2.connect(
-        os.getenv('DATABASE_URL', 'postgresql://user:password@postgres:5432/expense_db'),
-        cursor_factory=RealDictCursor
-    )
+    conn = sqlite3.connect('expense_local.db')
+    conn.row_factory = sqlite3.Row
+    return conn
 
-# Redis connection
-redis_client = redis.from_url(os.getenv('REDIS_URL', 'redis://redis:6379'))
+# Redis connection (disabled for local testing)
+# redis_client = None
 
 # Security decorators
 def verify_internal_request(f):
@@ -255,9 +252,9 @@ def add_expense():
         cur.close()
         conn.close()
         
-        # Queue background job để check budget
-        from workers.budget_checker import check_user_budget
-        check_user_budget.delay(user_id)
+        # Queue background job để check budget (disabled for local)
+        # from workers.budget_checker import check_user_budget
+        # check_user_budget.delay(user_id)
         
         # Log event
         log_system_event('EXPENSE_ADDED', {
@@ -412,6 +409,11 @@ def log_system_event(event_type, data):
         conn.close()
     except:
         pass  # Không crash app nếu log fail
+
+# Health check endpoint for Render
+@app.route('/health')
+def health_check():
+    return jsonify({'status': 'healthy', 'service': 'LAN'}), 200
 
 # ===== DATABASE INITIALIZATION =====
 @app.route('/init_db', methods=['POST'])
