@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expense Manager - Quản lý chi tiêu cá nhân</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; }
+        .hero { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 100px 0; text-align: center; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+        .hero h1 { font-size: 3rem; margin-bottom: 20px; }
+        .hero p { font-size: 1.2rem; margin-bottom: 30px; }
+        .btn { display: inline-block; padding: 12px 30px; margin: 10px; text-decoration: none; border-radius: 5px; font-weight: bold; transition: all 0.3s; }
+        .btn-primary { background: #4CAF50; color: white; }
+        .btn-secondary { background: transparent; color: white; border: 2px solid white; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        .features { padding: 80px 0; background: #f8f9fa; }
+        .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 40px; margin-top: 50px; }
+        .feature { text-align: center; padding: 30px; background: white; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .feature h3 { color: #333; margin-bottom: 15px; }
+        .security { padding: 60px 0; background: #2c3e50; color: white; text-align: center; }
+        .security h2 { margin-bottom: 30px; }
+        .security-note { background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; margin-top: 30px; }
+    </style>
+</head>
+<body>
+    <section class="hero">
+        <div class="container">
+            <h1>💰 Expense Manager</h1>
+            <p>Quản lý chi tiêu cá nhân thông minh và bảo mật</p>
+            <p>Theo dõi từng đồng chi tiêu, lập ngân sách, và đạt mục tiêu tài chính</p>
+            
+            <div style="margin-top: 40px;">
+                <a href="/register" class="btn btn-primary">🚀 Đăng ký miễn phí</a>
+                <a href="/login" class="btn btn-secondary">🔑 Đăng nhập</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="features">
+        <div class="container">
+            <h2 style="text-align: center; color: #333; margin-bottom: 20px;">✨ Tính năng nổi bật</h2>
+            
+            <div class="features-grid">
+                <div class="feature">
+                    <h3>📊 Theo dõi chi tiêu</h3>
+                    <p>Ghi lại mọi khoản chi tiêu với danh mục chi tiết. Xem biểu đồ trực quan về thói quen tiêu dùng của bạn.</p>
+                </div>
+                
+                <div class="feature">
+                    <h3>🎯 Lập ngân sách</h3>
+                    <p>Đặt ngân sách cho từng danh mục và nhận cảnh báo khi sắp vượt quá giới hạn.</p>
+                </div>
+                
+                <div class="feature">
+                    <h3>📈 Báo cáo thông minh</h3>
+                    <p>Phân tích chi tiêu theo tháng, quý, năm. Xuất báo cáo PDF để theo dõi tiến độ tài chính.</p>
+                </div>
+                
+                <div class="feature">
+                    <h3>🔒 Bảo mật tuyệt đối</h3>
+                    <p>Dữ liệu được mã hóa và chỉ bạn mới có thể xem. Không ai khác có thể truy cập thông tin của bạn.</p>
+                </div>
+                
+                <div class="feature">
+                    <h3>📱 Đa nền tảng</h3>
+                    <p>Sử dụng trên mọi thiết bị - máy tính, điện thoại, tablet. Dữ liệu đồng bộ tự động.</p>
+                </div>
+                
+                <div class="feature">
+                    <h3>⚡ Nhanh chóng</h3>
+                    <p>Thêm chi tiêu chỉ trong 3 giây. Giao diện đơn giản, dễ sử dụng cho mọi lứa tuổi.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="security">
+        <div class="container">
+            <h2>🛡️ Cam kết bảo mật</h2>
+            <p>Chúng tôi hiểu rằng thông tin tài chính là vô cùng nhạy cảm</p>
+            
+            <div class="security-note">
+                <h3>🔐 Quyền riêng tư tuyệt đối</h3>
+                <p><strong>Bạn chỉ thấy dữ liệu của chính mình</strong></p>
+                <p>Không ai khác - kể cả nhân viên - có thể xem chi tiêu của bạn</p>
+                <p>Dữ liệu được mã hóa end-to-end và lưu trữ an toàn</p>
+            </div>
+        </div>
+    </section>
+
+    <footer style="background: #333; color: white; text-align: center; padding: 40px 0;">
+        <div class="container">
+            <p>&copy; 2024 Expense Manager. Bảo mật - Đơn giản - Hiệu quả</p>
+            <p style="margin-top: 10px; font-size: 0.9rem; opacity: 0.7;">
+                Dành cho người dùng thông thường | Admin truy cập qua VPN riêng biệt
+            </p>
+        </div>
+    </footer>
+</body>
+</html>

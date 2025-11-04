@@ -1,0 +1,53 @@
+services:
+  # WAN Layer - Public Web Service on Render
+  - type: web
+    name: expense-manager-wan
+    env: python
+    buildCommand: cd WAN && pip install -r requirements.txt
+    startCommand: cd WAN && gunicorn --bind 0.0.0.0:$PORT app:app
+    plan: free
+    region: singapore
+    branch: main
+    healthCheckPath: /
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: INTERNAL_SECRET
+        generateValue: true
+      - key: LAN_API_URL
+        value: https://expense-manager-lan.onrender.com
+      - key: DATABASE_URL
+        fromDatabase:
+          name: expense-db
+          property: connectionString
+
+  # LAN Layer - Background Worker on Render
+  - type: web
+    name: expense-manager-lan
+    env: python
+    buildCommand: cd LAN && pip install -r requirements.txt
+    startCommand: cd LAN && python app.py
+    plan: free
+    region: singapore
+    branch: main
+    healthCheckPath: /admin/system_stats
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: INTERNAL_SECRET
+        sync: false
+      - key: ADMIN_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: expense-db
+          property: connectionString
+
+databases:
+  - name: expense-db
+    databaseName: expense_manager
+    user: expense_user
+    plan: free
+    region: singapore

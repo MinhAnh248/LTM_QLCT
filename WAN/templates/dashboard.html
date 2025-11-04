@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Expense Manager</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; }
+        .header { background: #667eea; color: white; padding: 20px 0; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+        .header-content { display: flex; justify-content: space-between; align-items: center; }
+        .logo h1 { margin: 0; }
+        .user-info { display: flex; align-items: center; gap: 15px; }
+        .btn { padding: 8px 16px; background: rgba(255,255,255,0.2); color: white; text-decoration: none; border-radius: 5px; transition: background 0.3s; }
+        .btn:hover { background: rgba(255,255,255,0.3); }
+        .main { padding: 30px 0; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .stat-card h3 { color: #333; margin-bottom: 10px; }
+        .stat-value { font-size: 2rem; font-weight: bold; color: #667eea; }
+        .expense-form { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 30px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr 2fr 1fr; gap: 15px; align-items: end; }
+        .form-group { display: flex; flex-direction: column; }
+        .form-group label { margin-bottom: 5px; color: #333; font-weight: 500; }
+        .form-group input, .form-group select { padding: 10px; border: 2px solid #ddd; border-radius: 5px; font-size: 14px; }
+        .btn-primary { background: #667eea; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: 600; }
+        .btn-primary:hover { background: #5a6fd8; }
+        .expenses-list { background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow: hidden; }
+        .expenses-header { background: #f8f9fa; padding: 20px; border-bottom: 1px solid #dee2e6; }
+        .expense-item { padding: 15px 20px; border-bottom: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center; }
+        .expense-item:last-child { border-bottom: none; }
+        .expense-info { flex: 1; }
+        .expense-amount { font-weight: bold; color: #dc3545; }
+        .expense-category { background: #e9ecef; padding: 4px 8px; border-radius: 4px; font-size: 12px; margin-left: 10px; }
+        @media (max-width: 768px) {
+            .form-row { grid-template-columns: 1fr; }
+            .header-content { flex-direction: column; gap: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <h1>💰 Expense Manager</h1>
+                </div>
+                <div class="user-info">
+                    <span>👋 {{ user.email }}</span>
+                    <a href="/logout" class="btn">🚪 Đăng xuất</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="container">
+            <!-- Stats Cards -->
+            <div class="stats">
+                <div class="stat-card">
+                    <h3>💰 Chi tiêu tháng này</h3>
+                    <div class="stat-value">{{ "{:,.0f}".format(stats.total_this_month if stats else 0) }} VNĐ</div>
+                </div>
+                <div class="stat-card">
+                    <h3>📊 Tổng giao dịch</h3>
+                    <div class="stat-value">{{ stats.total_transactions if stats else 0 }}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>📈 Danh mục nhiều nhất</h3>
+                    <div class="stat-value">
+                        {% if stats and stats.by_category %}
+                            {{ stats.by_category[0].category }}
+                        {% else %}
+                            Chưa có
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Expense Form -->
+            <div class="expense-form">
+                <h2>➕ Thêm chi tiêu mới</h2>
+                <form id="expenseForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="amount">💵 Số tiền</label>
+                            <input type="number" id="amount" name="amount" required min="0" step="1000">
+                        </div>
+                        <div class="form-group">
+                            <label for="category">📂 Danh mục</label>
+                            <select id="category" name="category" required>
+                                <option value="">Chọn danh mục</option>
+                                <option value="Ăn uống">🍽️ Ăn uống</option>
+                                <option value="Di chuyển">🚗 Di chuyển</option>
+                                <option value="Mua sắm">🛒 Mua sắm</option>
+                                <option value="Giải trí">🎬 Giải trí</option>
+                                <option value="Y tế">🏥 Y tế</option>
+                                <option value="Học tập">📚 Học tập</option>
+                                <option value="Khác">📦 Khác</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="description">📝 Mô tả</label>
+                            <input type="text" id="description" name="description" placeholder="VD: Cà phê sáng">
+                        </div>
+                        <div class="form-group">
+                            <button type="submit" class="btn-primary">➕ Thêm</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Expenses List -->
+            <div class="expenses-list">
+                <div class="expenses-header">
+                    <h2>📋 Chi tiêu gần đây</h2>
+                </div>
+                <div id="expensesList">
+                    <div class="expense-item">
+                        <div class="expense-info">
+                            <div>Đang tải...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Load expenses on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadExpenses();
+        });
+
+        // Add expense form handler
+        document.getElementById('expenseForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const data = {
+                amount: parseFloat(formData.get('amount')),
+                category: formData.get('category'),
+                description: formData.get('description')
+            };
+            
+            try {
+                const response = await fetch('/api/expenses', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    alert('✅ Thêm chi tiêu thành công!');
+                    e.target.reset();
+                    loadExpenses();
+                    location.reload(); // Reload to update stats
+                } else {
+                    const error = await response.json();
+                    alert('❌ Lỗi: ' + error.error);
+                }
+            } catch (error) {
+                alert('❌ Lỗi kết nối: ' + error.message);
+            }
+        });
+
+        // Load expenses function
+        async function loadExpenses() {
+            try {
+                const response = await fetch('/api/expenses');
+                if (response.ok) {
+                    const expenses = await response.json();
+                    displayExpenses(expenses);
+                } else {
+                    document.getElementById('expensesList').innerHTML = 
+                        '<div class="expense-item"><div class="expense-info">Không thể tải chi tiêu</div></div>';
+                }
+            } catch (error) {
+                document.getElementById('expensesList').innerHTML = 
+                    '<div class="expense-item"><div class="expense-info">Lỗi kết nối</div></div>';
+            }
+        }
+
+        // Display expenses function
+        function displayExpenses(expenses) {
+            const container = document.getElementById('expensesList');
+            
+            if (expenses.length === 0) {
+                container.innerHTML = '<div class="expense-item"><div class="expense-info">Chưa có chi tiêu nào</div></div>';
+                return;
+            }
+            
+            container.innerHTML = expenses.map(expense => `
+                <div class="expense-item">
+                    <div class="expense-info">
+                        <div><strong>${expense.description || 'Không có mô tả'}</strong></div>
+                        <div style="font-size: 12px; color: #666; margin-top: 4px;">
+                            ${new Date(expense.created_at).toLocaleDateString('vi-VN')}
+                        </div>
+                    </div>
+                    <div>
+                        <span class="expense-amount">${expense.amount.toLocaleString('vi-VN')} VNĐ</span>
+                        <span class="expense-category">${expense.category}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+    </script>
+</body>
+</html>
