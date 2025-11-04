@@ -5,17 +5,13 @@ import hashlib
 import uuid
 from datetime import datetime
 import json
-import psycopg2
-from psycopg2.extras import RealDictCursor
+import psycopg
 
 app = Flask(__name__)
 
 # Database connection
 def get_db():
-    conn = psycopg2.connect(
-        os.getenv('DATABASE_URL'),
-        cursor_factory=RealDictCursor
-    )
+    conn = psycopg.connect(os.getenv('DATABASE_URL'))
     return conn
 
 # Redis connection (disabled for local testing)
