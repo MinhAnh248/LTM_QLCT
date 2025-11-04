@@ -263,7 +263,7 @@ docker-compose logs vpn-admin
 
 ---
 
-## 👨‍💻 **Contact**
+## 👨💻 **Contact**
 
 Nếu có vấn đề, liên hệ admin qua VPN dashboard hoặc system logs.
 
