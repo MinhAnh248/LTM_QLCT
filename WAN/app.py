@@ -58,7 +58,7 @@ def register():
     # Gửi sang LAN xử lý
     try:
         response = requests.post(
-            f"{os.getenv('LAN_API_URL')}/api/register_user",
+            f"{os.getenv('LAN_API_URL', 'https://expense-manager-lan.onrender.com')}/api/register_user",
             json={'email': email, 'password': password},
             headers={'Internal-Secret': os.getenv('INTERNAL_SECRET')}
         )
@@ -84,7 +84,7 @@ def login():
     # Gửi sang LAN xác thực
     try:
         response = requests.post(
-            f"{os.getenv('LAN_API_URL')}/api/authenticate_user",
+            f"{os.getenv('LAN_API_URL', 'https://expense-manager-lan.onrender.com')}/api/authenticate_user",
             json={'email': email, 'password': password},
             headers={'Internal-Secret': os.getenv('INTERNAL_SECRET')}
         )

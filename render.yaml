@@ -5,3 +5,13 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn --chdir WAN --bind 0.0.0.0:$PORT app:app
     plan: free
+  - type: web
+    name: expense-manager-lan
+    env: python
+    buildCommand: cd LAN && pip install -r requirements.txt
+    startCommand: cd LAN && python app.py
+    plan: free
+databases:
+  - name: expense-db
+    databaseName: expense_manager
+    plan: free
