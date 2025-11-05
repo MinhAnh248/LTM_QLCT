@@ -203,6 +203,8 @@ def expenses():
             )
             
             if response.status_code == 201:
+                # Cập nhật expense_count của current_user
+                current_user.expense_count += 1
                 return jsonify(response.json()), 201
             else:
                 return jsonify({'error': response.json().get('error', 'Thêm chi tiêu thất bại')}), 400

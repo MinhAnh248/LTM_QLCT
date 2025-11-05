@@ -169,7 +169,8 @@
                     alert('✅ Thêm chi tiêu thành công!');
                     e.target.reset();
                     loadExpenses();
-                    location.reload(); // Reload to update stats
+                    // Reload page để cập nhật số lần còn lại
+                    window.location.reload();
                 } else {
                     const error = await response.json();
                     if (error.need_upgrade) {
