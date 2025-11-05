@@ -1,5 +1,11 @@
 services:
   - type: web
+    name: expense-manager-wan
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --chdir WAN --bind 0.0.0.0:$PORT app:app
+    plan: free
+  - type: web
     name: expense-manager-vpn
     env: node
     buildCommand: cd camera-demo && npm install
