@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LAN Admin Dashboard</title>
+    <style>
+        body { font-family: Arial; padding: 50px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; }
+        h1 { color: #333; }
+        .btn { padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
+        .btn:hover { background: #2980b9; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔒 LAN Admin Dashboard</h1>
+        <p>Chỉ truy cập được từ mạng nội bộ (10.40.x.x)</p>
+        
+        <h3>Quick Links:</h3>
+        <button class="btn" onclick="window.location.href='http://localhost:5001/init_db'">Init Database</button>
+        <button class="btn" onclick="window.location.href='http://localhost:5001/health'">Health Check</button>
+        <button class="btn" onclick="window.location.href='http://localhost:5001/admin'">Admin Panel</button>
+        
+        <h3>Server Status:</h3>
+        <div id="status">Checking...</div>
+        
+        <h3>Instructions:</h3>
+        <ol>
+            <li>Mở Command Prompt</li>
+            <li>cd d:\LTM_QLCT\LAN</li>
+            <li>python app.py</li>
+            <li>Refresh trang này</li>
+        </ol>
+    </div>
+    
+    <script>
+        fetch('http://localhost:5001/health')
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('status').innerHTML = '✅ Server đang chạy: ' + JSON.stringify(data);
+            })
+            .catch(e => {
+                document.getElementById('status').innerHTML = '❌ Server chưa chạy. Hãy chạy: python app.py';
+            });
+    </script>
+</body>
+</html>

@@ -11,9 +11,16 @@ app = Flask(__name__)
 
 # Database connection
 def get_db():
-    conn = psycopg.connect(os.getenv('DATABASE_URL'))
-    conn.row_factory = psycopg.rows.dict_row
-    return conn
+    db_url = os.getenv('DATABASE_URL', 'sqlite:///expense_local.db')
+    if db_url.startswith('sqlite'):
+        import sqlite3
+        conn = sqlite3.connect(db_url.replace('sqlite:///', ''))
+        conn.row_factory = sqlite3.Row
+        return conn
+    else:
+        conn = psycopg.connect(db_url)
+        conn.row_factory = psycopg.rows.dict_row
+        return conn
 
 # Redis connection (disabled for local testing)
 # redis_client = None
@@ -557,6 +564,45 @@ def init_database():
         return jsonify({'error': str(e)}), 500
 
 # Admin Dashboard Web Interface
+@app.route('/')
+def home():
+    return '''
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LAN Admin - Local Network Only</title>
+    <style>
+        body { font-family: Arial; margin: 0; background: #2c3e50; color: white; }
+        .container { max-width: 1000px; margin: 50px auto; padding: 30px; }
+        h1 { text-align: center; }
+        .card { background: #34495e; padding: 20px; margin: 20px 0; border-radius: 10px; }
+        .btn { padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 5px; text-decoration: none; display: inline-block; }
+        .btn:hover { background: #2980b9; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔒 LAN Admin Dashboard</h1>
+        <p style="text-align: center;">Chỉ truy cập được từ mạng nội bộ (10.40.x.x)</p>
+        
+        <div class="card">
+            <h3>Quick Actions:</h3>
+            <a href="/init_db" class="btn">📦 Init Database</a>
+            <a href="/admin" class="btn">👤 Admin Panel</a>
+            <a href="/health" class="btn">💚 Health Check</a>
+        </div>
+        
+        <div class="card">
+            <h3>📊 Server Info:</h3>
+            <p>Server: LAN Internal API</p>
+            <p>Port: 5001</p>
+            <p>Local IP: 10.40.3.43</p>
+        </div>
+    </div>
+</body>
+</html>
+    '''
+
 @app.route('/admin')
 def admin_dashboard():
     return '''
