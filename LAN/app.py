@@ -464,6 +464,205 @@ def init_database():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+# Admin Dashboard Web Interface
+@app.route('/admin')
+def admin_dashboard():
+    return '''
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - LAN</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .header { background: #2c3e50; color: white; padding: 20px; text-align: center; margin-bottom: 30px; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .stat-number { font-size: 2em; font-weight: bold; color: #3498db; }
+        .stat-label { color: #666; margin-top: 5px; }
+        .section { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .section h2 { margin-bottom: 15px; color: #2c3e50; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background: #f8f9fa; font-weight: bold; }
+        .btn { background: #e74c3c; color: white; padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer; }
+        .btn:hover { background: #c0392b; }
+        .auth-form { max-width: 400px; margin: 100px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+        .login-btn { width: 100%; background: #3498db; color: white; padding: 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+        .login-btn:hover { background: #2980b9; }
+        .error { color: #e74c3c; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="auth-form">
+        <h2 style="text-align: center; margin-bottom: 30px;">🔒 Admin Dashboard</h2>
+        <div class="form-group">
+            <label>Admin Secret:</label>
+            <input type="password" id="adminSecret" placeholder="Nhập Admin Secret">
+        </div>
+        <button onclick="loadDashboard()" class="login-btn">Truy cập Dashboard</button>
+        <div id="error" class="error"></div>
+    </div>
+
+    <div id="dashboard" style="display: none;">
+        <div class="header">
+            <h1>🔒 LAN Admin Dashboard</h1>
+            <p>Quản lý hệ thống - Chỉ dành cho Admin</p>
+        </div>
+
+        <div class="container">
+            <div class="stats" id="stats"></div>
+            <div class="section">
+                <h2>👥 Danh sách Users</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Email</th>
+                            <th>Ngày tạo</th>
+                            <th>Số giao dịch</th>
+                            <th>Tổng chi tiêu</th>
+                            <th>Trạng thái</th>
+                            <th>Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTable"></tbody>
+                </table>
+            </div>
+
+            <div class="section">
+                <h2>💰 Giao dịch gần đây</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Số tiền</th>
+                            <th>Danh mục</th>
+                            <th>Mô tả</th>
+                            <th>Ngày</th>
+                        </tr>
+                    </thead>
+                    <tbody id="expensesTable"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let adminSecret = "";
+
+        async function loadDashboard() {
+            adminSecret = document.getElementById("adminSecret").value;
+            if (!adminSecret) {
+                document.getElementById("error").textContent = "Vui lòng nhập Admin Secret";
+                return;
+            }
+
+            try {
+                const statsResponse = await fetch("/admin/system_stats", {
+                    headers: { "Admin-Secret": adminSecret }
+                });
+                
+                if (!statsResponse.ok) {
+                    document.getElementById("error").textContent = "Admin Secret không đúng";
+                    return;
+                }
+
+                const stats = await statsResponse.json();
+                
+                const usersResponse = await fetch("/admin/all_users", {
+                    headers: { "Admin-Secret": adminSecret }
+                });
+                const users = await usersResponse.json();
+
+                const expensesResponse = await fetch("/admin/all_expenses", {
+                    headers: { "Admin-Secret": adminSecret }
+                });
+                const expenses = await expensesResponse.json();
+
+                document.querySelector(".auth-form").style.display = "none";
+                document.getElementById("dashboard").style.display = "block";
+
+                document.getElementById("stats").innerHTML = `
+                    <div class="stat-card">
+                        <div class="stat-number">${stats.total_users}</div>
+                        <div class="stat-label">Tổng Users</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${stats.total_expenses}</div>
+                        <div class="stat-label">Tổng Giao dịch</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">$${stats.total_amount.toFixed(2)}</div>
+                        <div class="stat-label">Tổng Chi tiêu</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${stats.active_users}</div>
+                        <div class="stat-label">Users Hoạt động (24h)</div>
+                    </div>
+                `;
+
+                document.getElementById("usersTable").innerHTML = users.map(user => `
+                    <tr>
+                        <td>${user.email}</td>
+                        <td>${new Date(user.created_at).toLocaleDateString("vi-VN")}</td>
+                        <td>${user.expense_count}</td>
+                        <td>$${user.total_spent.toFixed(2)}</td>
+                        <td>${user.is_active ? "Hoạt động" : "Bị khóa"}</td>
+                        <td>
+                            ${user.is_active ? `<button class="btn" onclick="banUser(\"${user.id}\")">Ban</button>` : ""}
+                        </td>
+                    </tr>
+                `).join("");
+
+                document.getElementById("expensesTable").innerHTML = expenses.slice(0, 20).map(expense => `
+                    <tr>
+                        <td>${expense.user_email}</td>
+                        <td>$${expense.amount.toFixed(2)}</td>
+                        <td>${expense.category}</td>
+                        <td>${expense.description || "N/A"}</td>
+                        <td>${new Date(expense.created_at).toLocaleDateString("vi-VN")}</td>
+                    </tr>
+                `).join("");
+
+            } catch (error) {
+                document.getElementById("error").textContent = "Lỗi kết nối";
+            }
+        }
+
+        async function banUser(userId) {
+            if (!confirm("Bạn có chắc muốn ban user này?")) return;
+            
+            try {
+                const response = await fetch("/admin/ban_user", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Admin-Secret": adminSecret
+                    },
+                    body: JSON.stringify({ user_id: userId })
+                });
+                
+                if (response.ok) {
+                    alert("User đã bị ban");
+                    loadDashboard();
+                } else {
+                    alert("Lỗi khi ban user");
+                }
+            } catch (error) {
+                alert("Lỗi kết nối");
+            }
+        }
+    </script>
+</body>
+</html>
+    '''
+
 # Health check endpoint
 @app.route('/')
 def health():
@@ -471,7 +670,8 @@ def health():
         'service': 'LAN Internal API',
         'status': 'running',
         'endpoints': {
-            'admin': '/admin/system_stats',
+            'admin': '/admin',
+            'admin_api': '/admin/system_stats',
             'init': '/init_db',
             'api': '/api/register_user'
         }
