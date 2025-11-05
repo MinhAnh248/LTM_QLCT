@@ -26,17 +26,19 @@ services:
         fromDatabase:
           name: expense-db
           property: connectionString
-
-databases:
-  - name: expense-db
-    databaseName: expense_manager
-    plan: free
+  
   - type: web
-    name: expense-manager-lan
+    name: expense-manager-vpn
     env: python
-    buildCommand: cd LAN && pip install -r requirements.txt
-    startCommand: cd LAN && python app.py
+    buildCommand: cd VPN && pip install -r requirements.txt
+    startCommand: cd VPN && streamlit run admin_dashboard.py --server.port $PORT --server.address 0.0.0.0
     plan: free
+    envVars:
+      - key: LAN_API_URL
+        value: https://expense-manager-lan.onrender.com
+      - key: ADMIN_SECRET
+        sync: false
+
 databases:
   - name: expense-db
     databaseName: expense_manager

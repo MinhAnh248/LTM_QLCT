@@ -24,37 +24,13 @@ class User(UserMixin):
         self.expense_count = expense_count
         self.is_premium = is_premium
 
-# Local user storage
-USERS_FILE = 'users.json'
-EXPENSES_FILE = 'expenses.json'
-
-def load_users():
-    try:
-        with open(USERS_FILE, 'r') as f:
-            return json.load(f)
-    except:
-        return {}
-
-def save_users(users):
-    with open(USERS_FILE, 'w') as f:
-        json.dump(users, f)
-
-def load_expenses():
-    try:
-        with open(EXPENSES_FILE, 'r') as f:
-            return json.load(f)
-    except:
-        return []
-
-def save_expenses(expenses):
-    with open(EXPENSES_FILE, 'w') as f:
-        json.dump(expenses, f)
+# In-memory session storage (no database needed)
+active_sessions = {}
 
 @login_manager.user_loader
 def load_user(user_id):
-    users = load_users()
-    if user_id in users:
-        u = users[user_id]
+    if user_id in active_sessions:
+        u = active_sessions[user_id]
         return User(user_id, u['email'], u.get('expense_count', 0), u.get('is_premium', False))
     return None
 
@@ -113,6 +89,7 @@ def login():
         if response.status_code == 200:
             user_data = response.json()
             user = User(user_data['user_id'], user_data['email'], user_data.get('expense_count', 0), user_data.get('is_premium', False))
+            active_sessions[user_data['user_id']] = user_data
             login_user(user)
             
             if request.is_json:
