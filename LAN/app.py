@@ -434,10 +434,21 @@ def health_check():
     return jsonify({'status': 'healthy', 'service': 'LAN'}), 200
 
 # ===== DATABASE INITIALIZATION =====
-@app.route('/init_db', methods=['POST'])
-@verify_admin_request
+@app.route('/init_db', methods=['POST', 'GET'])
 def init_database():
-    """Khởi tạo database - CHỈ ADMIN"""
+    """Khởi tạo database"""
+    if request.method == 'GET':
+        return '''
+        <html>
+        <body style="font-family: Arial; padding: 50px; text-align: center;">
+            <h1>Init Database</h1>
+            <form method="POST">
+                <button type="submit" style="padding: 15px 30px; font-size: 18px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer;">Initialize Database</button>
+            </form>
+        </body>
+        </html>
+        '''
+    
     try:
         conn = get_db()
         cur = conn.cursor()
