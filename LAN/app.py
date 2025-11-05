@@ -66,9 +66,9 @@ def register_user():
         
         # Insert new user
         cur.execute("""
-            INSERT INTO users (id, email, password_hash, created_at, is_active)
-            VALUES (%s, %s, %s, %s, %s)
-        """, (user_id, email, password_hash, datetime.now(), True))
+            INSERT INTO users (id, email, password_hash, created_at, is_active, is_premium)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (user_id, email, password_hash, datetime.now(), True, False))
         
         conn.commit()
         cur.close()
@@ -97,8 +97,12 @@ def authenticate_user():
         cur = conn.cursor()
         
         cur.execute("""
-            SELECT id, email, is_active FROM users 
-            WHERE email = %s AND password_hash = %s
+            SELECT u.id, u.email, u.is_active, u.is_premium,
+                   COUNT(e.id) as expense_count
+            FROM users u
+            LEFT JOIN expenses e ON u.id = e.user_id
+            WHERE u.email = %s AND u.password_hash = %s
+            GROUP BY u.id, u.email, u.is_active, u.is_premium
         """, (email, password_hash))
         
         user = cur.fetchone()
@@ -116,7 +120,9 @@ def authenticate_user():
         
         return jsonify({
             'user_id': user['id'],
-            'email': user['email']
+            'email': user['email'],
+            'expense_count': user['expense_count'],
+            'is_premium': user.get('is_premium', False)
         }), 200
         
     except Exception as e:
@@ -133,7 +139,14 @@ def get_user():
         conn = get_db()
         cur = conn.cursor()
         
-        cur.execute("SELECT id, email FROM users WHERE id = %s AND is_active = true", (user_id,))
+        cur.execute("""
+            SELECT u.id, u.email, u.is_premium, 
+                   COUNT(e.id) as expense_count
+            FROM users u
+            LEFT JOIN expenses e ON u.id = e.user_id
+            WHERE u.id = %s AND u.is_active = true
+            GROUP BY u.id, u.email, u.is_premium
+        """, (user_id,))
         user = cur.fetchone()
         
         cur.close()
@@ -435,7 +448,8 @@ def init_database():
                 email VARCHAR(255) UNIQUE NOT NULL,
                 password_hash VARCHAR(64) NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                is_active BOOLEAN DEFAULT true
+                is_active BOOLEAN DEFAULT true,
+                is_premium BOOLEAN DEFAULT false
             )
         """)
         
