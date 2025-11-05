@@ -219,7 +219,7 @@ def expenses():
                 current_user.expense_count += 1
                 
                 # Push data sang LAN local
-                lan_local_url = os.getenv('LAN_LOCAL_URL', 'http://192.168.1.100:5001')
+                lan_local_url = os.getenv('LAN_LOCAL_URL', 'http://10.40.3.43:5001')
                 try:
                     requests.post(
                         f"{lan_local_url}/webhook/sync_data",
