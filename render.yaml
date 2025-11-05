@@ -45,6 +45,21 @@ services:
           name: expense-db
           property: connectionString
 
+  # VPN Layer - Admin Dashboard
+  - type: web
+    name: expense-manager-admin
+    env: python
+    buildCommand: cd VPN && pip install -r requirements.txt
+    startCommand: cd VPN && streamlit run admin_dashboard.py --server.port=$PORT --server.address=0.0.0.0
+    plan: free
+    region: singapore
+    branch: main
+    envVars:
+      - key: LAN_API_URL
+        value: https://expense-manager-lan.onrender.com
+      - key: ADMIN_SECRET
+        sync: false
+
 databases:
   - name: expense-db
     databaseName: expense_manager
