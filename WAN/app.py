@@ -253,7 +253,7 @@ limiter.init_app(app)
 # Health check endpoint for Render
 @app.route('/health')
 def health_check():
-    return jsonify({'status': 'healthy', 'service': 'WAN'}), 200
+    return jsonify({'status': 'healthy', 'service': 'WAN', 'timestamp': datetime.now().isoformat()}), 200
 
 if __name__ == '__main__':
     # Render configuration
