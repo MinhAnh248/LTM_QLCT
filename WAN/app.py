@@ -120,7 +120,7 @@ def logout():
 
 @app.route('/bank')
 def bank():
-    """Giao diện ngân hàng demo"""
+    """Giao diện ngân hàng demo với monitoring"""
     return render_template('bank.html')
 
 # ===== USER DASHBOARD =====
