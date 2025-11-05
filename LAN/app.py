@@ -121,12 +121,13 @@ def authenticate_user():
         return jsonify({
             'user_id': user['id'],
             'email': user['email'],
-            'expense_count': user['expense_count'],
+            'expense_count': user.get('expense_count', 0),
             'is_premium': user.get('is_premium', False)
         }), 200
         
     except Exception as e:
-        return jsonify({'error': 'Lỗi database'}), 500
+        print(f"Authenticate error: {str(e)}")
+        return jsonify({'error': f'Lỗi: {str(e)}'}), 500
 
 @app.route('/api/get_user', methods=['GET'])
 @verify_internal_request
