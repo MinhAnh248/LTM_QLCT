@@ -217,6 +217,27 @@ def expenses():
             
             if response.status_code == 201:
                 current_user.expense_count += 1
+                
+                # Push data sang LAN local
+                lan_local_url = os.getenv('LAN_LOCAL_URL', 'http://192.168.1.100:5001')
+                try:
+                    requests.post(
+                        f"{lan_local_url}/webhook/sync_data",
+                        json={
+                            'event_type': 'EXPENSE_ADDED',
+                            'data': {
+                                'expense_id': response.json().get('expense_id'),
+                                'user_id': current_user.id,
+                                'amount': float(data['amount']),
+                                'category': data['category'],
+                                'description': data.get('description', '')
+                            }
+                        },
+                        timeout=2
+                    )
+                except:
+                    pass
+                
                 return jsonify(response.json()), 201
             else:
                 return jsonify({'error': response.json().get('error', 'Thêm chi tiêu thất bại')}), 400

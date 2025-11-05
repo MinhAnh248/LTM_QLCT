@@ -429,6 +429,49 @@ def admin_ban_user():
     except Exception as e:
         return jsonify({'error': 'Lỗi database'}), 500
 
+# ===== WEBHOOK để nhận data từ WAN =====
+@app.route('/webhook/sync_data', methods=['POST'])
+def webhook_sync_data():
+    """Nhận dữ liệu từ WAN (không cần auth vì WAN push)"""
+    data = request.get_json()
+    event_type = data.get('event_type')
+    payload = data.get('data')
+    
+    try:
+        if event_type == 'USER_REGISTERED':
+            # Lưu user vào LAN database
+            conn = get_db()
+            cur = conn.cursor()
+            cur.execute("""
+                INSERT INTO users (id, email, password_hash, created_at, is_active, is_premium)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                ON CONFLICT (id) DO NOTHING
+            """, (payload['user_id'], payload['email'], payload['password_hash'], 
+                   datetime.now(), True, False))
+            conn.commit()
+            cur.close()
+            conn.close()
+            
+        elif event_type == 'EXPENSE_ADDED':
+            # Lưu expense vào LAN database
+            conn = get_db()
+            cur = conn.cursor()
+            cur.execute("""
+                INSERT INTO expenses (id, user_id, amount, category, description, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (payload['expense_id'], payload['user_id'], payload['amount'],
+                   payload['category'], payload['description'], datetime.now()))
+            conn.commit()
+            cur.close()
+            conn.close()
+        
+        log_system_event(event_type, payload)
+        return jsonify({'success': True}), 200
+        
+    except Exception as e:
+        print(f"Webhook error: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 # ===== UTILITY FUNCTIONS =====
 def log_system_event(event_type, data):
     """Log system events"""
