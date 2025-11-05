@@ -5,6 +5,8 @@ import requests
 import os
 from datetime import datetime
 import hashlib
+import json
+import uuid
 
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'dev-secret-key')
@@ -22,20 +24,38 @@ class User(UserMixin):
         self.expense_count = expense_count
         self.is_premium = is_premium
 
+# Local user storage
+USERS_FILE = 'users.json'
+EXPENSES_FILE = 'expenses.json'
+
+def load_users():
+    try:
+        with open(USERS_FILE, 'r') as f:
+            return json.load(f)
+    except:
+        return {}
+
+def save_users(users):
+    with open(USERS_FILE, 'w') as f:
+        json.dump(users, f)
+
+def load_expenses():
+    try:
+        with open(EXPENSES_FILE, 'r') as f:
+            return json.load(f)
+    except:
+        return []
+
+def save_expenses(expenses):
+    with open(EXPENSES_FILE, 'w') as f:
+        json.dump(expenses, f)
+
 @login_manager.user_loader
 def load_user(user_id):
-    # Gọi LAN để lấy user info
-    try:
-        response = requests.get(
-            f"{os.getenv('LAN_API_URL', 'http://lan-app:5001')}/api/get_user",
-            json={'user_id': user_id},
-            headers={'Internal-Secret': os.getenv('INTERNAL_SECRET', 'secret-key')}
-        )
-        if response.status_code == 200:
-            user_data = response.json()
-            return User(user_data['id'], user_data['email'], user_data.get('expense_count', 0), user_data.get('is_premium', False))
-    except:
-        pass
+    users = load_users()
+    if user_id in users:
+        u = users[user_id]
+        return User(user_id, u['email'], u.get('expense_count', 0), u.get('is_premium', False))
     return None
 
 # ===== PUBLIC ROUTES =====
@@ -46,7 +66,7 @@ def home():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    """Đăng ký tài khoản - CHỈ users thông thường"""
+    """Đăng ký tài khoản"""
     if request.method == 'GET':
         return render_template('register.html')
     
@@ -57,29 +77,42 @@ def register():
     if not email or not password:
         return jsonify({'error': 'Email và password là bắt buộc'}), 400
     
-    # Gửi sang LAN xử lý
+    users = load_users()
+    
+    # Check existing
+    for uid, u in users.items():
+        if u['email'] == email:
+            return jsonify({'error': 'Email đã được sử dụng'}), 400
+    
+    # Create user
+    user_id = str(uuid.uuid4())
+    password_hash = hashlib.sha256(password.encode()).hexdigest()
+    
+    users[user_id] = {
+        'email': email,
+        'password_hash': password_hash,
+        'expense_count': 0,
+        'is_premium': False,
+        'created_at': datetime.now().isoformat()
+    }
+    
+    save_users(users)
+    
+    # Gửi log sang LAN để admin theo dõi
     try:
-        lan_url = os.getenv('LAN_API_URL', 'https://expense-manager-lan.onrender.com')
-        internal_secret = os.getenv('INTERNAL_SECRET', 'secret-key')
-        
-        response = requests.post(
-            f"{lan_url}/api/register_user",
-            json={'email': email, 'password': password},
-            headers={'Internal-Secret': internal_secret},
-            timeout=10
+        requests.post(
+            f"{os.getenv('LAN_API_URL', 'https://expense-manager-lan.onrender.com')}/log_event",
+            json={'event': 'USER_REGISTERED', 'email': email},
+            timeout=2
         )
-        
-        if response.status_code == 201:
-            return jsonify({'success': True, 'message': 'Đăng ký thành công'})
-        else:
-            return jsonify({'error': response.json().get('error', 'Đăng ký thất bại')}), 400
-            
-    except Exception as e:
-        return jsonify({'error': 'Lỗi hệ thống'}), 500
+    except:
+        pass
+    
+    return jsonify({'success': True, 'message': 'Đăng ký thành công'})
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """Đăng nhập - CHỈ users thông thường"""
+    """Đăng nhập"""
     if request.method == 'GET':
         return render_template('login.html')
     
@@ -87,42 +120,41 @@ def login():
     email = data.get('email')
     password = data.get('password')
     
-    # Gửi sang LAN xác thực
-    try:
-        lan_url = os.getenv('LAN_API_URL', 'https://expense-manager-lan.onrender.com')
-        internal_secret = os.getenv('INTERNAL_SECRET', 'secret-key')
-        
-        print(f"Calling LAN: {lan_url}")
-        
-        response = requests.post(
-            f"{lan_url}/api/authenticate_user",
-            json={'email': email, 'password': password},
-            headers={'Internal-Secret': internal_secret},
-            timeout=10
-        )
-        
-        if response.status_code == 200:
-            user_data = response.json()
-            user = User(user_data['user_id'], user_data['email'], user_data.get('expense_count', 0), user_data.get('is_premium', False))
-            login_user(user)
-            
-            if request.is_json:
-                return jsonify({'success': True, 'redirect': url_for('dashboard')})
-            else:
-                return redirect(url_for('dashboard'))
-        else:
-            error_msg = 'Email hoặc password không đúng'
-            if request.is_json:
-                return jsonify({'error': error_msg}), 401
-            else:
-                return render_template('login.html', error=error_msg)
-                
-    except Exception as e:
-        error_msg = f'Lỗi hệ thống: {str(e)}'
+    users = load_users()
+    password_hash = hashlib.sha256(password.encode()).hexdigest()
+    
+    # Tìm user
+    user_found = None
+    for uid, u in users.items():
+        if u['email'] == email and u['password_hash'] == password_hash:
+            user_found = (uid, u)
+            break
+    
+    if not user_found:
+        error_msg = 'Email hoặc password không đúng'
         if request.is_json:
-            return jsonify({'error': error_msg}), 500
+            return jsonify({'error': error_msg}), 401
         else:
             return render_template('login.html', error=error_msg)
+    
+    uid, u = user_found
+    user = User(uid, u['email'], u.get('expense_count', 0), u.get('is_premium', False))
+    login_user(user)
+    
+    # Gửi log sang LAN
+    try:
+        requests.post(
+            f"{os.getenv('LAN_API_URL', 'https://expense-manager-lan.onrender.com')}/log_event",
+            json={'event': 'USER_LOGIN', 'email': email},
+            timeout=2
+        )
+    except:
+        pass
+    
+    if request.is_json:
+        return jsonify({'success': True, 'redirect': url_for('dashboard')})
+    else:
+        return redirect(url_for('dashboard'))
 
 @app.route('/logout')
 @login_required
