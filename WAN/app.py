@@ -116,6 +116,11 @@ def logout():
     logout_user()
     return redirect(url_for('home'))
 
+@app.route('/bank')
+def bank():
+    """Giao diện ngân hàng demo"""
+    return render_template('bank.html')
+
 # ===== USER DASHBOARD =====
 @app.route('/dashboard')
 @login_required
