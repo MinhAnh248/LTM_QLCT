@@ -1,8 +1,12 @@
 {
-  "name": "expense-manager",
+  "name": "expense-manager-vpn",
   "version": "1.0.0",
+  "main": "camera-demo/server.js",
   "scripts": {
-    "build": "echo 'Python app - no build needed'",
-    "start": "echo 'Use Python instead'"
+    "start": "node camera-demo/server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2"
   }
 }

@@ -8,6 +8,6 @@ services:
   - type: web
     name: expense-manager-vpn
     env: node
-    buildCommand: cd camera-demo && npm install
-    startCommand: cd camera-demo && node server.js
+    buildCommand: npm install
+    startCommand: node camera-demo/server.js
     plan: free
