@@ -177,82 +177,76 @@ def upgrade():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    """Dashboard cá nhân - User chỉ thấy data của mình"""
-    try:
-        # Gọi LAN lấy thống kê CỦA USER này
-        response = requests.get(
-            f"{os.getenv('LAN_API_URL')}/api/user_stats",
-            json={'user_id': current_user.id},
-            headers={'Internal-Secret': os.getenv('INTERNAL_SECRET')}
-        )
-        
-        if response.status_code == 200:
-            stats = response.json()
-            return render_template('dashboard.html', stats=stats, user=current_user)
-        else:
-            return render_template('dashboard.html', error='Không thể tải dữ liệu')
-            
-    except Exception as e:
-        return render_template('dashboard.html', error='Lỗi hệ thống')
+    """Dashboard cá nhân"""
+    expenses = load_expenses()
+    user_expenses = [e for e in expenses if e.get('user_id') == current_user.id]
+    
+    # Tính stats
+    total_this_month = sum(e['amount'] for e in user_expenses)
+    total_transactions = len(user_expenses)
+    
+    stats = {
+        'total_this_month': total_this_month,
+        'total_transactions': total_transactions,
+        'by_category': []
+    }
+    
+    return render_template('dashboard.html', stats=stats, user=current_user)
 
 # ===== EXPENSE API =====
 @app.route('/api/expenses', methods=['GET', 'POST'])
 @login_required
 def expenses():
-    """API quản lý chi tiêu - User chỉ thao tác với data của mình"""
+    """API quản lý chi tiêu"""
     
     if request.method == 'GET':
-        # Lấy chi tiêu CỦA USER này (KHÔNG phải tất cả users)
-        try:
-            response = requests.get(
-                f"{os.getenv('LAN_API_URL')}/api/get_user_expenses",
-                json={'user_id': current_user.id},
-                headers={'Internal-Secret': os.getenv('INTERNAL_SECRET')}
-            )
-            
-            if response.status_code == 200:
-                return jsonify(response.json())
-            else:
-                return jsonify({'error': 'Không thể tải chi tiêu'}), 500
-                
-        except Exception as e:
-            return jsonify({'error': 'Lỗi hệ thống'}), 500
+        all_expenses = load_expenses()
+        user_expenses = [e for e in all_expenses if e.get('user_id') == current_user.id]
+        return jsonify(user_expenses)
     
     elif request.method == 'POST':
         # Kiểm tra giới hạn expense
         if not current_user.is_premium and current_user.expense_count >= 5:
             return jsonify({'error': 'Bạn đã hết lượt sử dụng miễn phí (5 lần). Vui lòng nâng cấp lên gói vĩnh viễn!', 'need_upgrade': True}), 403
         
-        # Thêm chi tiêu mới
         data = request.get_json()
         
-        # Validate input
         if not data.get('amount') or not data.get('category'):
             return jsonify({'error': 'Amount và category là bắt buộc'}), 400
         
+        # Lưu expense local
+        all_expenses = load_expenses()
+        expense_id = str(uuid.uuid4())
+        
+        new_expense = {
+            'id': expense_id,
+            'user_id': current_user.id,
+            'amount': float(data['amount']),
+            'category': data['category'],
+            'description': data.get('description', ''),
+            'created_at': datetime.now().isoformat()
+        }
+        
+        all_expenses.append(new_expense)
+        save_expenses(all_expenses)
+        
+        # Cập nhật expense_count
+        users = load_users()
+        users[current_user.id]['expense_count'] += 1
+        save_users(users)
+        current_user.expense_count += 1
+        
+        # Gửi log sang LAN
         try:
-            # Gửi sang LAN xử lý
-            response = requests.post(
-                f"{os.getenv('LAN_API_URL')}/api/add_expense",
-                json={
-                    'user_id': current_user.id,  # BẮT BUỘC có user_id
-                    'amount': float(data['amount']),
-                    'category': data['category'],
-                    'description': data.get('description', ''),
-                    'date': data.get('date', datetime.now().isoformat())
-                },
-                headers={'Internal-Secret': os.getenv('INTERNAL_SECRET')}
+            requests.post(
+                f"{os.getenv('LAN_API_URL', 'https://expense-manager-lan.onrender.com')}/log_event",
+                json={'event': 'EXPENSE_ADDED', 'email': current_user.email, 'amount': data['amount']},
+                timeout=2
             )
-            
-            if response.status_code == 201:
-                # Cập nhật expense_count của current_user
-                current_user.expense_count += 1
-                return jsonify(response.json()), 201
-            else:
-                return jsonify({'error': response.json().get('error', 'Thêm chi tiêu thất bại')}), 400
-                
-        except Exception as e:
-            return jsonify({'error': 'Lỗi hệ thống'}), 500
+        except:
+            pass
+        
+        return jsonify({'success': True, 'expense_id': expense_id}), 201
 
 @app.route('/api/expenses/<expense_id>', methods=['PUT', 'DELETE'])
 @login_required
