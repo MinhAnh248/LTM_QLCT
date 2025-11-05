@@ -65,6 +65,18 @@
                 <div class="stat-card">
                     <h3>📊 Tổng giao dịch</h3>
                     <div class="stat-value">{{ stats.total_transactions if stats else 0 }}</div>
+                    {% if not user.is_premium %}
+                    <div style="font-size: 0.9rem; color: #e74c3c; margin-top: 10px;">
+                        Còn lại: {{ 5 - user.expense_count }}/5 lần miễn phí
+                        {% if user.expense_count >= 5 %}
+                        <br><a href="/upgrade" style="color: #e74c3c; font-weight: bold;">🚀 Nâng cấp ngay!</a>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <div style="font-size: 0.9rem; color: #27ae60; margin-top: 10px;">
+                        ✨ Gói vĩnh viễn - Không giới hạn
+                    </div>
+                    {% endif %}
                 </div>
                 <div class="stat-card">
                     <h3>📈 Danh mục nhiều nhất</h3>
@@ -160,7 +172,13 @@
                     location.reload(); // Reload to update stats
                 } else {
                     const error = await response.json();
-                    alert('❌ Lỗi: ' + error.error);
+                    if (error.need_upgrade) {
+                        if (confirm('❌ ' + error.error + '\n\nBạn có muốn nâng cấp ngay không?')) {
+                            window.location.href = '/upgrade';
+                        }
+                    } else {
+                        alert('❌ Lỗi: ' + error.error);
+                    }
                 }
             } catch (error) {
                 alert('❌ Lỗi kết nối: ' + error.message);

@@ -16,9 +16,11 @@ login_manager.init_app(app)
 login_manager.login_view = 'login'
 
 class User(UserMixin):
-    def __init__(self, user_id, email):
+    def __init__(self, user_id, email, expense_count=0, is_premium=False):
         self.id = user_id
         self.email = email
+        self.expense_count = expense_count
+        self.is_premium = is_premium
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -31,7 +33,7 @@ def load_user(user_id):
         )
         if response.status_code == 200:
             user_data = response.json()
-            return User(user_data['id'], user_data['email'])
+            return User(user_data['id'], user_data['email'], user_data.get('expense_count', 0), user_data.get('is_premium', False))
     except:
         pass
     return None
@@ -91,7 +93,7 @@ def login():
         
         if response.status_code == 200:
             user_data = response.json()
-            user = User(user_data['user_id'], user_data['email'])
+            user = User(user_data['user_id'], user_data['email'], user_data.get('expense_count', 0), user_data.get('is_premium', False))
             login_user(user)
             
             if request.is_json:
@@ -122,6 +124,12 @@ def logout():
 def bank():
     """Giao diện ngân hàng demo với monitoring"""
     return render_template('bank.html')
+
+@app.route('/upgrade')
+@login_required
+def upgrade():
+    """Trang nâng cấp gói vĩnh viễn"""
+    return render_template('upgrade.html', user=current_user)
 
 # ===== USER DASHBOARD =====
 @app.route('/dashboard')
@@ -169,6 +177,10 @@ def expenses():
             return jsonify({'error': 'Lỗi hệ thống'}), 500
     
     elif request.method == 'POST':
+        # Kiểm tra giới hạn expense
+        if not current_user.is_premium and current_user.expense_count >= 5:
+            return jsonify({'error': 'Bạn đã hết lượt sử dụng miễn phí (5 lần). Vui lòng nâng cấp lên gói vĩnh viễn!', 'need_upgrade': True}), 403
+        
         # Thêm chi tiêu mới
         data = request.get_json()
         
