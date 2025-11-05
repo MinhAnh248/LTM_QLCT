@@ -1,0 +1,8 @@
+{
+  "name": "expense-manager",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "echo 'Python app - no build needed'",
+    "start": "echo 'Use Python instead'"
+  }
+}
