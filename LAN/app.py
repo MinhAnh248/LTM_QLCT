@@ -534,6 +534,12 @@ def init_database():
             )
         """)
         
+        # Add is_premium column if not exists
+        try:
+            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_premium BOOLEAN DEFAULT false")
+        except:
+            pass
+        
         cur.execute("""
             CREATE TABLE IF NOT EXISTS expenses (
                 id VARCHAR(36) PRIMARY KEY,
