@@ -61,6 +61,8 @@ def register():
             timeout=10
         )
         
+        print(f"Register Response: {response.status_code} - {response.text}")
+        
         if response.status_code == 201:
             return jsonify({'success': True, 'message': 'Đăng ký thành công'})
         else:
@@ -86,6 +88,8 @@ def login():
             timeout=10
         )
         
+        print(f"LAN Response: {response.status_code} - {response.text}")
+        
         if response.status_code == 200:
             user_data = response.json()
             user = User(user_data['user_id'], user_data['email'], user_data.get('expense_count', 0), user_data.get('is_premium', False))
@@ -102,8 +106,9 @@ def login():
                 return jsonify({'error': error_msg}), 401
             else:
                 return render_template('login.html', error=error_msg)
-    except:
-        error_msg = 'Lỗi kết nối LAN API'
+    except Exception as e:
+        print(f"Login Exception: {str(e)}")
+        error_msg = f'Lỗi kết nối LAN API: {str(e)}'
         if request.is_json:
             return jsonify({'error': error_msg}), 500
         else:
