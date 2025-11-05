@@ -198,7 +198,9 @@ def expenses():
             )
             
             if response.status_code == 201:
+                # Cập nhật expense_count
                 current_user.expense_count += 1
+                active_sessions[current_user.id]['expense_count'] = current_user.expense_count
                 
                 # Push data sang LAN local
                 lan_local_url = os.getenv('LAN_LOCAL_URL', 'http://10.40.3.43:5001')
