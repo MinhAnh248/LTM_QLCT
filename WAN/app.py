@@ -77,38 +77,20 @@ def register():
     if not email or not password:
         return jsonify({'error': 'Email và password là bắt buộc'}), 400
     
-    users = load_users()
-    
-    # Check existing
-    for uid, u in users.items():
-        if u['email'] == email:
-            return jsonify({'error': 'Email đã được sử dụng'}), 400
-    
-    # Create user
-    user_id = str(uuid.uuid4())
-    password_hash = hashlib.sha256(password.encode()).hexdigest()
-    
-    users[user_id] = {
-        'email': email,
-        'password_hash': password_hash,
-        'expense_count': 0,
-        'is_premium': False,
-        'created_at': datetime.now().isoformat()
-    }
-    
-    save_users(users)
-    
-    # Gửi log sang LAN để admin theo dõi
     try:
-        requests.post(
-            f"{os.getenv('LAN_API_URL', 'https://expense-manager-lan.onrender.com')}/log_event",
-            json={'event': 'USER_REGISTERED', 'email': email},
-            timeout=2
+        response = requests.post(
+            f"{os.getenv('LAN_API_URL', 'https://expense-manager-lan.onrender.com')}/api/register_user",
+            json={'email': email, 'password': password},
+            headers={'Internal-Secret': os.getenv('INTERNAL_SECRET', 'secret-key')},
+            timeout=10
         )
+        
+        if response.status_code == 201:
+            return jsonify({'success': True, 'message': 'Đăng ký thành công'})
+        else:
+            return jsonify({'error': response.json().get('error', 'Đăng ký thất bại')}), 400
     except:
-        pass
-    
-    return jsonify({'success': True, 'message': 'Đăng ký thành công'})
+        return jsonify({'error': 'Lỗi kết nối LAN API'}), 500
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -120,41 +102,35 @@ def login():
     email = data.get('email')
     password = data.get('password')
     
-    users = load_users()
-    password_hash = hashlib.sha256(password.encode()).hexdigest()
-    
-    # Tìm user
-    user_found = None
-    for uid, u in users.items():
-        if u['email'] == email and u['password_hash'] == password_hash:
-            user_found = (uid, u)
-            break
-    
-    if not user_found:
-        error_msg = 'Email hoặc password không đúng'
+    try:
+        response = requests.post(
+            f"{os.getenv('LAN_API_URL', 'https://expense-manager-lan.onrender.com')}/api/authenticate_user",
+            json={'email': email, 'password': password},
+            headers={'Internal-Secret': os.getenv('INTERNAL_SECRET', 'secret-key')},
+            timeout=10
+        )
+        
+        if response.status_code == 200:
+            user_data = response.json()
+            user = User(user_data['user_id'], user_data['email'], user_data.get('expense_count', 0), user_data.get('is_premium', False))
+            login_user(user)
+            
+            if request.is_json:
+                return jsonify({'success': True, 'redirect': url_for('dashboard')})
+            else:
+                return redirect(url_for('dashboard'))
+        else:
+            error_msg = 'Email hoặc password không đúng'
+            if request.is_json:
+                return jsonify({'error': error_msg}), 401
+            else:
+                return render_template('login.html', error=error_msg)
+    except:
+        error_msg = 'Lỗi kết nối LAN API'
         if request.is_json:
-            return jsonify({'error': error_msg}), 401
+            return jsonify({'error': error_msg}), 500
         else:
             return render_template('login.html', error=error_msg)
-    
-    uid, u = user_found
-    user = User(uid, u['email'], u.get('expense_count', 0), u.get('is_premium', False))
-    login_user(user)
-    
-    # Gửi log sang LAN
-    try:
-        requests.post(
-            f"{os.getenv('LAN_API_URL', 'https://expense-manager-lan.onrender.com')}/log_event",
-            json={'event': 'USER_LOGIN', 'email': email},
-            timeout=2
-        )
-    except:
-        pass
-    
-    if request.is_json:
-        return jsonify({'success': True, 'redirect': url_for('dashboard')})
-    else:
-        return redirect(url_for('dashboard'))
 
 @app.route('/logout')
 @login_required
@@ -178,20 +154,21 @@ def upgrade():
 @login_required
 def dashboard():
     """Dashboard cá nhân"""
-    expenses = load_expenses()
-    user_expenses = [e for e in expenses if e.get('user_id') == current_user.id]
-    
-    # Tính stats
-    total_this_month = sum(e['amount'] for e in user_expenses)
-    total_transactions = len(user_expenses)
-    
-    stats = {
-        'total_this_month': total_this_month,
-        'total_transactions': total_transactions,
-        'by_category': []
-    }
-    
-    return render_template('dashboard.html', stats=stats, user=current_user)
+    try:
+        response = requests.get(
+            f"{os.getenv('LAN_API_URL', 'https://expense-manager-lan.onrender.com')}/api/user_stats",
+            json={'user_id': current_user.id},
+            headers={'Internal-Secret': os.getenv('INTERNAL_SECRET', 'secret-key')},
+            timeout=10
+        )
+        
+        if response.status_code == 200:
+            stats = response.json()
+            return render_template('dashboard.html', stats=stats, user=current_user)
+        else:
+            return render_template('dashboard.html', error='Không thể tải dữ liệu', user=current_user)
+    except:
+        return render_template('dashboard.html', error='Lỗi kết nối', user=current_user)
 
 # ===== EXPENSE API =====
 @app.route('/api/expenses', methods=['GET', 'POST'])
@@ -200,12 +177,22 @@ def expenses():
     """API quản lý chi tiêu"""
     
     if request.method == 'GET':
-        all_expenses = load_expenses()
-        user_expenses = [e for e in all_expenses if e.get('user_id') == current_user.id]
-        return jsonify(user_expenses)
+        try:
+            response = requests.get(
+                f"{os.getenv('LAN_API_URL', 'https://expense-manager-lan.onrender.com')}/api/get_user_expenses",
+                json={'user_id': current_user.id},
+                headers={'Internal-Secret': os.getenv('INTERNAL_SECRET', 'secret-key')},
+                timeout=10
+            )
+            
+            if response.status_code == 200:
+                return jsonify(response.json())
+            else:
+                return jsonify({'error': 'Không thể tải chi tiêu'}), 500
+        except:
+            return jsonify({'error': 'Lỗi kết nối'}), 500
     
     elif request.method == 'POST':
-        # Kiểm tra giới hạn expense
         if not current_user.is_premium and current_user.expense_count >= 5:
             return jsonify({'error': 'Bạn đã hết lượt sử dụng miễn phí (5 lần). Vui lòng nâng cấp lên gói vĩnh viễn!', 'need_upgrade': True}), 403
         
@@ -214,39 +201,27 @@ def expenses():
         if not data.get('amount') or not data.get('category'):
             return jsonify({'error': 'Amount và category là bắt buộc'}), 400
         
-        # Lưu expense local
-        all_expenses = load_expenses()
-        expense_id = str(uuid.uuid4())
-        
-        new_expense = {
-            'id': expense_id,
-            'user_id': current_user.id,
-            'amount': float(data['amount']),
-            'category': data['category'],
-            'description': data.get('description', ''),
-            'created_at': datetime.now().isoformat()
-        }
-        
-        all_expenses.append(new_expense)
-        save_expenses(all_expenses)
-        
-        # Cập nhật expense_count
-        users = load_users()
-        users[current_user.id]['expense_count'] += 1
-        save_users(users)
-        current_user.expense_count += 1
-        
-        # Gửi log sang LAN
         try:
-            requests.post(
-                f"{os.getenv('LAN_API_URL', 'https://expense-manager-lan.onrender.com')}/log_event",
-                json={'event': 'EXPENSE_ADDED', 'email': current_user.email, 'amount': data['amount']},
-                timeout=2
+            response = requests.post(
+                f"{os.getenv('LAN_API_URL', 'https://expense-manager-lan.onrender.com')}/api/add_expense",
+                json={
+                    'user_id': current_user.id,
+                    'amount': float(data['amount']),
+                    'category': data['category'],
+                    'description': data.get('description', ''),
+                    'date': data.get('date', datetime.now().isoformat())
+                },
+                headers={'Internal-Secret': os.getenv('INTERNAL_SECRET', 'secret-key')},
+                timeout=10
             )
+            
+            if response.status_code == 201:
+                current_user.expense_count += 1
+                return jsonify(response.json()), 201
+            else:
+                return jsonify({'error': response.json().get('error', 'Thêm chi tiêu thất bại')}), 400
         except:
-            pass
-        
-        return jsonify({'success': True, 'expense_id': expense_id}), 201
+            return jsonify({'error': 'Lỗi kết nối'}), 500
 
 @app.route('/api/expenses/<expense_id>', methods=['PUT', 'DELETE'])
 @login_required

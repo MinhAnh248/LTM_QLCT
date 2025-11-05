@@ -20,13 +20,32 @@ def get_db():
 
 # Security decorators
 def verify_internal_request(f):
-    """Chỉ cho phép WAN gọi"""
+    """Chỉ cho phép từ cùng mạng LAN"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        # Kiểm tra IP client
+        client_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+        
+        # Cho phép localhost và private IP ranges
+        allowed_ips = [
+            '127.0.0.1',
+            'localhost',
+        ]
+        
+        # Private IP ranges (LAN)
+        if (client_ip.startswith('192.168.') or 
+            client_ip.startswith('10.') or 
+            client_ip.startswith('172.16.') or
+            client_ip.startswith('172.31.') or
+            client_ip in allowed_ips):
+            return f(*args, **kwargs)
+        
+        # Kiểm tra secret key (cho WAN service)
         secret = request.headers.get('Internal-Secret')
-        if secret != os.getenv('INTERNAL_SECRET', 'secret-key'):
-            return jsonify({"error": "Forbidden - Internal access only"}), 403
-        return f(*args, **kwargs)
+        if secret == os.getenv('INTERNAL_SECRET', 'secret-key'):
+            return f(*args, **kwargs)
+        
+        return jsonify({"error": "Forbidden - LAN access only"}), 403
     return decorated_function
 
 def verify_admin_request(f):
