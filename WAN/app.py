@@ -59,10 +59,14 @@ def register():
     
     # Gửi sang LAN xử lý
     try:
+        lan_url = os.getenv('LAN_API_URL', 'https://expense-manager-lan.onrender.com')
+        internal_secret = os.getenv('INTERNAL_SECRET', 'secret-key')
+        
         response = requests.post(
-            f"{os.getenv('LAN_API_URL', 'https://expense-manager-lan.onrender.com')}/api/register_user",
+            f"{lan_url}/api/register_user",
             json={'email': email, 'password': password},
-            headers={'Internal-Secret': os.getenv('INTERNAL_SECRET')}
+            headers={'Internal-Secret': internal_secret},
+            timeout=10
         )
         
         if response.status_code == 201:
@@ -85,10 +89,16 @@ def login():
     
     # Gửi sang LAN xác thực
     try:
+        lan_url = os.getenv('LAN_API_URL', 'https://expense-manager-lan.onrender.com')
+        internal_secret = os.getenv('INTERNAL_SECRET', 'secret-key')
+        
+        print(f"Calling LAN: {lan_url}")
+        
         response = requests.post(
-            f"{os.getenv('LAN_API_URL', 'https://expense-manager-lan.onrender.com')}/api/authenticate_user",
+            f"{lan_url}/api/authenticate_user",
             json={'email': email, 'password': password},
-            headers={'Internal-Secret': os.getenv('INTERNAL_SECRET')}
+            headers={'Internal-Secret': internal_secret},
+            timeout=10
         )
         
         if response.status_code == 200:
@@ -108,7 +118,7 @@ def login():
                 return render_template('login.html', error=error_msg)
                 
     except Exception as e:
-        error_msg = 'Lỗi hệ thống'
+        error_msg = f'Lỗi hệ thống: {str(e)}'
         if request.is_json:
             return jsonify({'error': error_msg}), 500
         else:
