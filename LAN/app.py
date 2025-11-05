@@ -295,13 +295,17 @@ def admin_system_stats():
         total_amount = cur.fetchone()['total']
         
         # Active users (login trong 24h)
-        cur.execute("""
-            SELECT COUNT(DISTINCT user_id) as active 
-            FROM system_logs 
-            WHERE event_type = 'USER_LOGIN' 
-            AND created_at > NOW() - INTERVAL '24 hours'
-        """)
-        active_users = cur.fetchone()['active']
+        try:
+            cur.execute("""
+                SELECT COUNT(DISTINCT user_id) as active 
+                FROM system_logs 
+                WHERE event_type = 'USER_LOGIN' 
+                AND created_at > NOW() - INTERVAL '24 hours'
+            """)
+            result = cur.fetchone()
+            active_users = result['active'] if result else 0
+        except:
+            active_users = 0
         
         cur.close()
         conn.close()
