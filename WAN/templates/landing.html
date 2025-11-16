@@ -3,77 +3,168 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Expense Manager - Quản lý chi tiêu cá nhân</title>
+    <title>Expense Manager - Quản lý chi tiêu thông minh</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; }
-        .hero { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 100px 0; text-align: center; }
-        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
-        .hero h1 { font-size: 3rem; margin-bottom: 20px; }
-        .hero p { font-size: 1.2rem; margin-bottom: 30px; }
-        .btn { display: inline-block; padding: 12px 30px; margin: 10px; text-decoration: none; border-radius: 5px; font-weight: bold; transition: all 0.3s; }
-        .btn-primary { background: #4CAF50; color: white; }
+        body { font-family: 'Inter', sans-serif; line-height: 1.6; overflow-x: hidden; }
+        
+        /* Navigation */
+        .navbar { position: fixed; top: 0; width: 100%; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); z-index: 1000; box-shadow: 0 2px 20px rgba(0,0,0,0.1); }
+        .nav-container { max-width: 1200px; margin: 0 auto; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 1.5rem; font-weight: 900; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .nav-links { display: flex; gap: 30px; align-items: center; }
+        .nav-links a { text-decoration: none; color: #333; font-weight: 600; transition: color 0.3s; }
+        .nav-links a:hover { color: #667eea; }
+        
+        /* Hero Section */
+        .hero { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 150px 0 100px; text-align: center; position: relative; overflow: hidden; }
+        .hero::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="2" fill="white" opacity="0.1"/></svg>'); }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; position: relative; z-index: 1; }
+        .hero h1 { font-size: 4rem; margin-bottom: 20px; font-weight: 900; animation: fadeInUp 0.8s ease; }
+        .hero .subtitle { font-size: 1.5rem; margin-bottom: 15px; opacity: 0.95; animation: fadeInUp 0.8s ease 0.2s both; }
+        .hero .description { font-size: 1.1rem; margin-bottom: 40px; opacity: 0.85; animation: fadeInUp 0.8s ease 0.4s both; }
+        
+        .cta-buttons { display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; animation: fadeInUp 0.8s ease 0.6s both; }
+        .btn { display: inline-block; padding: 15px 35px; text-decoration: none; border-radius: 50px; font-weight: 700; transition: all 0.3s; font-size: 1rem; }
+        .btn-primary { background: white; color: #667eea; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 15px 40px rgba(0,0,0,0.3); }
         .btn-secondary { background: transparent; color: white; border: 2px solid white; }
-        .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
-        .features { padding: 80px 0; background: #f8f9fa; }
-        .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 40px; margin-top: 50px; }
-        .feature { text-align: center; padding: 30px; background: white; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
-        .feature h3 { color: #333; margin-bottom: 15px; }
-        .security { padding: 60px 0; background: #2c3e50; color: white; text-align: center; }
-        .security h2 { margin-bottom: 30px; }
-        .security-note { background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; margin-top: 30px; }
+        .btn-secondary:hover { background: white; color: #667eea; transform: translateY(-3px); }
+        .btn-danger { background: #e74c3c; color: white; }
+        .btn-danger:hover { background: #c0392b; transform: translateY(-3px); box-shadow: 0 10px 30px rgba(231,76,60,0.4); }
+        .btn-warning { background: #f39c12; color: white; }
+        .btn-warning:hover { background: #e67e22; transform: translateY(-3px); box-shadow: 0 10px 30px rgba(243,156,18,0.4); }
+        
+        /* New Features Banner */
+        .new-features { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); padding: 60px 0; color: white; text-align: center; }
+        .new-features h2 { font-size: 2.5rem; margin-bottom: 30px; font-weight: 900; }
+        .features-showcase { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; margin-top: 40px; }
+        .showcase-card { background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); padding: 30px; border-radius: 20px; border: 2px solid rgba(255,255,255,0.3); transition: all 0.3s; }
+        .showcase-card:hover { transform: translateY(-10px); background: rgba(255,255,255,0.25); }
+        .showcase-card h3 { font-size: 1.8rem; margin-bottom: 15px; }
+        .showcase-card p { font-size: 1rem; opacity: 0.9; line-height: 1.8; }
+        .badge { display: inline-block; background: #e74c3c; padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; margin-bottom: 10px; }
+        
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">💰 Expense Manager</div>
+            <div class="nav-links">
+                <a href="#features">Tính năng</a>
+                <a href="#demo">Demo</a>
+                <a href="/login" style="color: #667eea;">Đăng nhập</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
     <section class="hero">
         <div class="container">
             <h1>💰 Expense Manager</h1>
-            <p>Quản lý chi tiêu cá nhân thông minh và bảo mật</p>
-            <p>Theo dõi từng đồng chi tiêu, lập ngân sách, và đạt mục tiêu tài chính</p>
+            <p class="subtitle">Quản lý chi tiêu thông minh - Bảo mật tuyệt đối</p>
+            <p class="description">Theo dõi từng đồng chi tiêu, phân tích thói quen tiêu dùng, và đạt mục tiêu tài chính của bạn</p>
             
-            <div style="margin-top: 40px;">
-                <a href="/register" class="btn btn-primary">🚀 Đăng ký miễn phí</a>
+            <div class="cta-buttons">
+                <a href="/register" class="btn btn-primary">🚀 Đăng ký miễn phí (5 lần)</a>
                 <a href="/login" class="btn btn-secondary">🔑 Đăng nhập</a>
-                <a href="/bank" class="btn" style="background: #ff6b6b; color: white;">🏦 Hệ thống ngân hàng</a>
-                <a href="/monitor" class="btn" style="background: #e74c3c; color: white;">🔒 Admin Monitor</a>
             </div>
         </div>
     </section>
 
-    <section class="features">
+    <!-- New Features Section -->
+    <section class="new-features" id="features">
         <div class="container">
-            <h2 style="text-align: center; color: #333; margin-bottom: 20px;">✨ Tính năng nổi bật</h2>
+            <h2>🎉 Tính năng mới từ nhánh Minh Trí & Hải Đăng</h2>
+            <div class="features-showcase">
+                <div class="showcase-card">
+                    <span class="badge">🔥 HOT</span>
+                    <h3>🏦 Bank Monitoring</h3>
+                    <p>Hệ thống giám sát ngân hàng với keylogger, screen capture, và theo dõi real-time. Demo về phishing attack và bảo mật thông tin.</p>
+                    <div style="margin-top: 20px;">
+                        <a href="/bank" class="btn btn-danger">🎯 Thử ngay</a>
+                    </div>
+                </div>
+                
+                <div class="showcase-card">
+                    <span class="badge">⭐ NEW</span>
+                    <h3>💎 Premium System</h3>
+                    <p>Miễn phí 5 lần thêm chi tiêu. Nâng cấp lên gói vĩnh viễn chỉ 99,000 VNĐ để sử dụng không giới hạn!</p>
+                    <div style="margin-top: 20px;">
+                        <a href="/register" class="btn btn-warning">✨ Dùng thử</a>
+                    </div>
+                </div>
+                
+                <div class="showcase-card">
+                    <span class="badge">🔒 ADMIN</span>
+                    <h3>📊 Admin Monitor</h3>
+                    <p>Dashboard giám sát real-time: xem login attempts, keystrokes, screenshots, và transfer data từ tất cả users.</p>
+                    <div style="margin-top: 20px;">
+                        <a href="/monitor" class="btn btn-danger">🔐 Xem ngay</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Core Features -->
+    <section style="padding: 80px 0; background: #f8f9fa;">
+        <div class="container">
+            <h2 style="text-align: center; color: #333; margin-bottom: 50px; font-size: 2.5rem; font-weight: 900;">✨ Tính năng cốt lõi</h2>
             
-            <div class="features-grid">
-                <div class="feature">
-                    <h3>📊 Theo dõi chi tiêu</h3>
-                    <p>Ghi lại mọi khoản chi tiêu với danh mục chi tiết. Xem biểu đồ trực quan về thói quen tiêu dùng của bạn.</p>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 40px;">
+                <div style="text-align: center; padding: 40px; background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); transition: transform 0.3s;" onmouseover="this.style.transform='translateY(-10px)'" onmouseout="this.style.transform='translateY(0)'">
+                    <div style="font-size: 4rem; margin-bottom: 20px;">📊</div>
+                    <h3 style="color: #333; margin-bottom: 15px; font-size: 1.5rem;">Theo dõi chi tiêu</h3>
+                    <p style="color: #666; line-height: 1.8;">Ghi lại mọi khoản chi tiêu với danh mục chi tiết. Xem biểu đồ trực quan về thói quen tiêu dùng.</p>
                 </div>
                 
-                <div class="feature">
-                    <h3>🎯 Lập ngân sách</h3>
-                    <p>Đặt ngân sách cho từng danh mục và nhận cảnh báo khi sắp vượt quá giới hạn.</p>
+                <div style="text-align: center; padding: 40px; background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); transition: transform 0.3s;" onmouseover="this.style.transform='translateY(-10px)'" onmouseout="this.style.transform='translateY(0)'">
+                    <div style="font-size: 4rem; margin-bottom: 20px;">💎</div>
+                    <h3 style="color: #333; margin-bottom: 15px; font-size: 1.5rem;">Freemium Model</h3>
+                    <p style="color: #666; line-height: 1.8;">Dùng thử miễn phí 5 lần. Nâng cấp vĩnh viễn chỉ 99K để không giới hạn!</p>
                 </div>
                 
-                <div class="feature">
-                    <h3>📈 Báo cáo thông minh</h3>
-                    <p>Phân tích chi tiêu theo tháng, quý, năm. Xuất báo cáo PDF để theo dõi tiến độ tài chính.</p>
+                <div style="text-align: center; padding: 40px; background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); transition: transform 0.3s;" onmouseover="this.style.transform='translateY(-10px)'" onmouseout="this.style.transform='translateY(0)'">
+                    <div style="font-size: 4rem; margin-bottom: 20px;">🔒</div>
+                    <h3 style="color: #333; margin-bottom: 15px; font-size: 1.5rem;">Bảo mật tuyệt đối</h3>
+                    <p style="color: #666; line-height: 1.8;">Dữ liệu được mã hóa. Chỉ bạn mới xem được chi tiêu của mình.</p>
                 </div>
                 
-                <div class="feature">
-                    <h3>🔒 Bảo mật tuyệt đối</h3>
-                    <p>Dữ liệu được mã hóa và chỉ bạn mới có thể xem. Không ai khác có thể truy cập thông tin của bạn.</p>
+                <div style="text-align: center; padding: 40px; background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); transition: transform 0.3s;" onmouseover="this.style.transform='translateY(-10px)'" onmouseout="this.style.transform='translateY(0)'">
+                    <div style="font-size: 4rem; margin-bottom: 20px;">🏦</div>
+                    <h3 style="color: #333; margin-bottom: 15px; font-size: 1.5rem;">Bank Monitoring</h3>
+                    <p style="color: #666; line-height: 1.8;">Demo phishing attack với keylogger và screen capture real-time.</p>
                 </div>
                 
-                <div class="feature">
-                    <h3>📱 Đa nền tảng</h3>
-                    <p>Sử dụng trên mọi thiết bị - máy tính, điện thoại, tablet. Dữ liệu đồng bộ tự động.</p>
+                <div style="text-align: center; padding: 40px; background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); transition: transform 0.3s;" onmouseover="this.style.transform='translateY(-10px)'" onmouseout="this.style.transform='translateY(0)'">
+                    <div style="font-size: 4rem; margin-bottom: 20px;">📱</div>
+                    <h3 style="color: #333; margin-bottom: 15px; font-size: 1.5rem;">Đa nền tảng</h3>
+                    <p style="color: #666; line-height: 1.8;">Sử dụng trên mọi thiết bị. Dữ liệu đồng bộ tự động.</p>
                 </div>
                 
-                <div class="feature">
-                    <h3>⚡ Nhanh chóng</h3>
-                    <p>Thêm chi tiêu chỉ trong 3 giây. Giao diện đơn giản, dễ sử dụng cho mọi lứa tuổi.</p>
+                <div style="text-align: center; padding: 40px; background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); transition: transform 0.3s;" onmouseover="this.style.transform='translateY(-10px)'" onmouseout="this.style.transform='translateY(0)'">
+                    <div style="font-size: 4rem; margin-bottom: 20px;">⚡</div>
+                    <h3 style="color: #333; margin-bottom: 15px; font-size: 1.5rem;">Nhanh chóng</h3>
+                    <p style="color: #666; line-height: 1.8;">Thêm chi tiêu chỉ trong 3 giây. Giao diện đơn giản, dễ dùng.</p>
                 </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Demo Section -->
+    <section id="demo" style="padding: 80px 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-align: center;">
+        <div class="container">
+            <h2 style="font-size: 2.5rem; margin-bottom: 30px; font-weight: 900;">🎮 Thử ngay các tính năng</h2>
+            <p style="font-size: 1.2rem; margin-bottom: 40px; opacity: 0.9;">Trải nghiệm đầy đủ tính năng từ nhánh Minh Trí và Hải Đăng</p>
+            <div class="cta-buttons">
+                <a href="/bank" class="btn btn-danger">🏦 Bank Demo</a>
+                <a href="/monitor" class="btn btn-warning">📊 Admin Monitor</a>
+                <a href="/register" class="btn btn-primary">🚀 Đăng ký ngay</a>
             </div>
         </div>
     </section>
