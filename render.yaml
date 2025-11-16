@@ -38,6 +38,13 @@ services:
         value: https://expense-manager-lan.onrender.com
       - key: ADMIN_SECRET
         sync: false
+  
+  - type: web
+    name: expense-manager-monitor
+    env: node
+    buildCommand: cd camera-demo && npm install
+    startCommand: cd camera-demo && node server.js
+    plan: free
 
 databases:
   - name: expense-db

