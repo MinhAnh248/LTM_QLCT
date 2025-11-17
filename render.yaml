@@ -3,7 +3,7 @@ services:
     name: expense-manager-wan
     env: python
     buildCommand: cd WAN && pip install -r requirements.txt
-    startCommand: cd WAN && gunicorn --bind 0.0.0.0:$PORT app:app
+    startCommand: cd WAN && python app.py
     plan: free
     envVars:
       - key: LAN_API_URL
