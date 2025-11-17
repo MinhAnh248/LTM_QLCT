@@ -286,11 +286,21 @@ CORS(app, origins=['*'])  # Allow all origins for public access
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
-limiter = Limiter(
-    key_func=get_remote_address,
-    default_limits=["200 per day", "50 per hour"]
-)
-limiter.init_app(app)
+# Only enable rate limiting in production
+if os.getenv('FLASK_ENV') == 'production':
+    limiter = Limiter(
+        app=app,
+        key_func=get_remote_address,
+        storage_uri=os.getenv('REDIS_URL', 'memory://'),
+        default_limits=["200 per day", "50 per hour"]
+    )
+else:
+    # Development: no rate limiting
+    limiter = Limiter(
+        app=app,
+        key_func=get_remote_address,
+        enabled=False
+    )
 
 # Health check endpoint for Render
 @app.route('/health')

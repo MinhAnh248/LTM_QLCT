@@ -1,37 +1,41 @@
 @echo off
 echo ========================================
-echo Starting 3-Layer Expense Manager System
+echo Starting 3-Layer Expense Manager
 echo ========================================
 echo.
 
-echo [1/3] Starting LAN Layer (Backend API)...
-start "LAN-Backend" cmd /k "cd LAN && set DATABASE_URL=sqlite:///expense_local.db && set PORT=5001 && set INTERNAL_SECRET=secret-key && set ADMIN_SECRET=admin-secret-key && python app.py"
-timeout /t 3
+REM Set environment variables
+set FLASK_ENV=development
+set LAN_API_URL=http://localhost:5001
+set DATABASE_URL=postgresql://user:password@localhost:5432/expense_db
+set INTERNAL_SECRET=secret-key
+set ADMIN_SECRET=admin-secret-key
+set SECRET_KEY=your-secret-key
 
-echo [2/3] Starting WAN Layer (Public Web)...
-start "WAN-Public" cmd /k "cd WAN && set SECRET_KEY=dev-secret-key && set LAN_API_URL=http://localhost:5001 && set INTERNAL_SECRET=secret-key && set PORT=5500 && python app.py"
-timeout /t 3
+echo [1/3] Starting LAN Layer (Backend API) on port 5001...
+start "LAN-API" cmd /k "cd LAN && python app.py"
+timeout /t 3 /nobreak >nul
 
-echo [3/3] Starting VPN Layer (Admin Dashboard)...
-start "VPN-Admin" cmd /k "cd VPN && set LAN_API_URL=http://localhost:5001 && set ADMIN_SECRET=admin-secret-key && streamlit run admin_dashboard.py --server.port 8501"
-timeout /t 2
+echo [2/3] Starting WAN Layer (Public Web) on port 5000...
+start "WAN-Web" cmd /k "cd WAN && python app.py"
+timeout /t 3 /nobreak >nul
+
+echo [3/3] Starting VPN Layer (Admin Dashboard) on port 8501...
+start "VPN-Admin" cmd /k "cd VPN && streamlit run admin_dashboard.py"
+timeout /t 3 /nobreak >nul
 
 echo.
 echo ========================================
-echo All services started successfully!
+echo All services started!
 echo ========================================
 echo.
-echo LAN (Backend):  http://localhost:5001
-echo WAN (Public):   http://localhost:5500
-echo VPN (Admin):    http://localhost:8501
+echo WAN (Public):  http://localhost:5000
+echo LAN (API):     http://localhost:5001
+echo VPN (Admin):   http://localhost:8501
 echo.
-echo Press any key to open all URLs...
-pause
+echo Press any key to stop all services...
+pause >nul
 
-start http://localhost:5001
-start http://localhost:5500
-start http://localhost:8501
-
-echo.
-echo System is running. Close this window to stop all services.
-pause
+taskkill /FI "WindowTitle eq LAN-API*" /T /F
+taskkill /FI "WindowTitle eq WAN-Web*" /T /F
+taskkill /FI "WindowTitle eq VPN-Admin*" /T /F
