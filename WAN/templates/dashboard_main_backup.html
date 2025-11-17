@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Expense Manager</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+        
+        .header { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); box-shadow: 0 2px 20px rgba(0,0,0,0.1); padding: 15px 0; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+        .header-content { display: flex; justify-content: space-between; align-items: center; }
+        .logo h1 { margin: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 1.5rem; font-weight: 900; }
+        .user-info { display: flex; align-items: center; gap: 15px; }
+        .user-email { color: #333; font-weight: 600; }
+        .premium-badge { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; }
+        .free-badge { background: #95a5a6; color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; }
+        .btn { padding: 10px 20px; background: #667eea; color: white; text-decoration: none; border-radius: 25px; transition: all 0.3s; font-weight: 600; }
+        .btn:hover { background: #5a6fd8; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(102,126,234,0.4); }
+        
+        .main { padding: 30px 0; }
+        
+        .usage-alert { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 20px; border-radius: 15px; margin-bottom: 30px; text-align: center; box-shadow: 0 10px 30px rgba(240,147,251,0.3); }
+        .usage-alert h3 { font-size: 1.5rem; margin-bottom: 10px; font-weight: 900; }
+        .usage-alert .progress-bar { background: rgba(255,255,255,0.3); height: 30px; border-radius: 15px; overflow: hidden; margin: 15px 0; }
+        .usage-alert .progress-fill { background: white; height: 100%; transition: width 0.5s; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #f5576c; }
+        .usage-alert .btn-upgrade { background: white; color: #f5576c; padding: 12px 30px; border-radius: 25px; text-decoration: none; display: inline-block; margin-top: 10px; font-weight: 700; transition: all 0.3s; }
+        .usage-alert .btn-upgrade:hover { transform: scale(1.05); box-shadow: 0 5px 20px rgba(255,255,255,0.5); }
+        
+        .quick-actions { display: flex; gap: 15px; margin-bottom: 30px; flex-wrap: wrap; }
+        .quick-action { background: white; padding: 20px 30px; border-radius: 15px; text-decoration: none; color: #333; font-weight: 600; box-shadow: 0 5px 15px rgba(0,0,0,0.1); transition: all 0.3s; display: flex; align-items: center; gap: 10px; }
+        .quick-action:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0,0,0,0.15); }
+        
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; margin-bottom: 30px; }
+        .stat-card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); transition: transform 0.3s; }
+        .stat-card:hover { transform: translateY(-5px); }
+        .stat-card h3 { color: #333; margin-bottom: 15px; font-size: 1rem; font-weight: 600; }
+        .stat-value { font-size: 2.5rem; font-weight: 900; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        
+        .expense-form { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-bottom: 30px; }
+        .expense-form h2 { color: #333; margin-bottom: 25px; font-size: 1.8rem; font-weight: 900; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr 2fr auto; gap: 15px; align-items: end; }
+        .form-group { display: flex; flex-direction: column; }
+        .form-group label { margin-bottom: 8px; color: #333; font-weight: 600; font-size: 0.9rem; }
+        .form-group input, .form-group select { padding: 12px 15px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 14px; transition: all 0.3s; font-family: 'Inter', sans-serif; }
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.1); }
+        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 30px; border-radius: 10px; cursor: pointer; font-weight: 700; transition: all 0.3s; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(102,126,234,0.4); }
+        
+        .expenses-list { background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); overflow: hidden; }
+        .expenses-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 25px; color: white; }
+        .expenses-header h2 { margin: 0; font-size: 1.5rem; font-weight: 900; }
+        .expense-item { padding: 20px 25px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; transition: background 0.3s; }
+        .expense-item:hover { background: #f8f9fa; }
+        .expense-item:last-child { border-bottom: none; }
+        .expense-info { flex: 1; }
+        .expense-info strong { color: #333; font-size: 1.1rem; }
+        .expense-date { color: #999; font-size: 0.85rem; margin-top: 5px; }
+        .expense-amount { font-weight: 900; color: #e74c3c; font-size: 1.3rem; }
+        .expense-category { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; margin-left: 15px; font-weight: 600; }
+        
+        @media (max-width: 768px) {
+            .form-row { grid-template-columns: 1fr; }
+            .header-content { flex-direction: column; gap: 10px; text-align: center; }
+            .stats { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <h1>💰 Expense Manager</h1>
+                </div>
+                <div class="user-info">
+                    <span class="user-email">👋 {{ user.email }}</span>
+                    {% if user.is_premium %}
+                    <span class="premium-badge">✨ PREMIUM</span>
+                    {% else %}
+                    <span class="free-badge">🆓 FREE</span>
+                    {% endif %}
+                    <a href="/logout" class="btn">🚪 Đăng xuất</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="container">
+            {% if not user.is_premium %}
+            <div class="usage-alert">
+                <h3>🎯 Bạn đang dùng gói miễn phí</h3>
+                <p>Số lần thêm chi tiêu: {{ user.expense_count }}/5</p>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: {{ (user.expense_count / 5 * 100)|int }}%;">
+                        {{ user.expense_count }}/5
+                    </div>
+                </div>
+                {% if user.expense_count >= 5 %}
+                <p style="font-size: 1.1rem; margin-bottom: 10px;">⚠️ Bạn đã hết lượt sử dụng miễn phí!</p>
+                {% else %}
+                <p>Còn lại: {{ 5 - user.expense_count }} lần</p>
+                {% endif %}
+                <a href="/upgrade" class="btn-upgrade">🚀 Nâng cấp vĩnh viễn - Chỉ 99,000 VNĐ</a>
+            </div>
+            {% else %}
+            <div class="usage-alert" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+                <h3>✨ Bạn đang dùng gói PREMIUM</h3>
+                <p style="font-size: 1.2rem;">🎉 Thêm chi tiêu KHÔNG GIỚI HẠN!</p>
+                <p style="margin-top: 10px; opacity: 0.9;">Đã thêm: {{ user.expense_count }} chi tiêu</p>
+            </div>
+            {% endif %}
+            
+            <div class="quick-actions">
+                <a href="/bank" class="quick-action" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%); color: white;">
+                    <span style="font-size: 1.5rem;">🏦</span>
+                    <span>Bank Demo</span>
+                </a>
+                <a href="/monitor" class="quick-action" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;">
+                    <span style="font-size: 1.5rem;">📊</span>
+                    <span>Admin Monitor</span>
+                </a>
+                {% if not user.is_premium %}
+                <a href="/upgrade" class="quick-action" style="background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%); color: white;">
+                    <span style="font-size: 1.5rem;">💎</span>
+                    <span>Nâng cấp Premium</span>
+                </a>
+                {% endif %}
+            </div>
+            
+            <div class="stats">
+                <div class="stat-card">
+                    <h3>💰 Chi tiêu tháng này</h3>
+                    <div class="stat-value">{{ "{:,.0f}".format(stats.total_this_month if stats else 0) }} VNĐ</div>
+                </div>
+                <div class="stat-card">
+                    <h3>📊 Tổng giao dịch</h3>
+                    <div class="stat-value">{{ stats.total_transactions if stats else 0 }}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>📈 Danh mục nhiều nhất</h3>
+                    <div class="stat-value">
+                        {% if stats and stats.by_category %}
+                            {{ stats.by_category[0].category }}
+                        {% else %}
+                            Chưa có
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="expense-form">
+                <h2>➕ Thêm chi tiêu mới</h2>
+                <form id="expenseForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="amount">💵 Số tiền</label>
+                            <input type="number" id="amount" name="amount" required min="0" step="1000">
+                        </div>
+                        <div class="form-group">
+                            <label for="category">📂 Danh mục</label>
+                            <select id="category" name="category" required>
+                                <option value="">Chọn danh mục</option>
+                                <option value="Ăn uống">🍽️ Ăn uống</option>
+                                <option value="Di chuyển">🚗 Di chuyển</option>
+                                <option value="Mua sắm">🛒 Mua sắm</option>
+                                <option value="Giải trí">🎬 Giải trí</option>
+                                <option value="Y tế">🏥 Y tế</option>
+                                <option value="Học tập">📚 Học tập</option>
+                                <option value="Khác">📦 Khác</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="description">📝 Mô tả</label>
+                            <input type="text" id="description" name="description" placeholder="VD: Cà phê sáng">
+                        </div>
+                        <div class="form-group">
+                            <button type="submit" class="btn-primary">➕ Thêm</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div class="expenses-list">
+                <div class="expenses-header">
+                    <h2>📋 Chi tiêu gần đây</h2>
+                </div>
+                <div id="expensesList">
+                    <div class="expense-item">
+                        <div class="expense-info">
+                            <div>Đang tải...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            loadExpenses();
+        });
+
+        document.getElementById('expenseForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const data = {
+                amount: parseFloat(formData.get('amount')),
+                category: formData.get('category'),
+                description: formData.get('description')
+            };
+            
+            try {
+                const response = await fetch('/api/expenses', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    alert('✅ Thêm chi tiêu thành công!');
+                    e.target.reset();
+                    window.location.reload();
+                } else {
+                    const error = await response.json();
+                    if (error.need_upgrade) {
+                        if (confirm('❌ ' + error.error + '\n\nBạn có muốn nâng cấp ngay không?')) {
+                            window.location.href = '/upgrade';
+                        }
+                    } else {
+                        alert('❌ Lỗi: ' + error.error);
+                    }
+                }
+            } catch (error) {
+                alert('❌ Lỗi kết nối: ' + error.message);
+            }
+        });
+
+        async function loadExpenses() {
+            try {
+                const response = await fetch('/api/expenses');
+                if (response.ok) {
+                    const expenses = await response.json();
+                    displayExpenses(expenses);
+                } else {
+                    document.getElementById('expensesList').innerHTML = 
+                        '<div class="expense-item"><div class="expense-info">Không thể tải chi tiêu</div></div>';
+                }
+            } catch (error) {
+                document.getElementById('expensesList').innerHTML = 
+                    '<div class="expense-item"><div class="expense-info">Lỗi kết nối</div></div>';
+            }
+        }
+
+        function displayExpenses(expenses) {
+            const container = document.getElementById('expensesList');
+            
+            if (expenses.length === 0) {
+                container.innerHTML = '<div class="expense-item"><div class="expense-info">Chưa có chi tiêu nào</div></div>';
+                return;
+            }
+            
+            container.innerHTML = expenses.map(expense => `
+                <div class="expense-item">
+                    <div class="expense-info">
+                        <div><strong>${expense.description || 'Không có mô tả'}</strong></div>
+                        <div class="expense-date">
+                            ${new Date(expense.created_at).toLocaleDateString('vi-VN')}
+                        </div>
+                    </div>
+                    <div>
+                        <span class="expense-amount">${expense.amount.toLocaleString('vi-VN')} VNĐ</span>
+                        <span class="expense-category">${expense.category}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+    </script>
+</body>
+</html>
